@@ -1,0 +1,255 @@
+{
+  "case_id": "case_02_atypical_sle",
+  "patient_presentation": {
+    "presenting_complaint": "Six weeks of polyarthralgia, fatigue, and a photosensitive facial rash",
+    "history": "28-year-old female, no significant PMH. On combined oral contraceptive for 2 years. Mother has rheumatoid arthritis. Reports symmetric MCP/PIP/wrist pain with morning stiffness ~45 min, intermittent low-grade fevers, and a malar rash that worsens after sun exposure. No recent travel, no sick contacts, no new medications.",
+    "vitals": {
+      "BP": "118/72",
+      "HR": "82",
+      "Temp": "37.8",
+      "RR": "16",
+      "SpO2": "99% on RA"
+    },
+    "labs": {
+      "WBC": "3.2 (low)",
+      "Hgb": "11.0",
+      "Plt": "138 (mild thrombocytopenia)",
+      "Cr": "0.9",
+      "UA": "trace protein, no casts",
+      "ANA": "1:640 speckled",
+      "Anti-dsDNA": "pending",
+      "C3": "62 (low)",
+      "C4": "10 (low)",
+      "ESR": "48",
+      "CRP": "12"
+    },
+    "imaging": {
+      "notes": "Hand XR: no erosions, mild soft tissue swelling. CXR: clear."
+    },
+    "medications": ["combined oral contraceptive (ethinyl estradiol/levonorgestrel)"]
+  },
+  "demographics": {"age": 28, "sex": "F"},
+  "scripted_rounds": [
+    {
+      "round": 1,
+      "responses": {
+        "Hauser": {
+          "reasoning": "Carmen's about to scream lupus. Forman's about to mumble viral. The interesting question nobody's asking: is this Mixed Connective Tissue Disease? Speckled ANA at high titer is the MCTD fingerprint, and her symptoms could be the early myositis/arthritis overlap before it declares itself.",
+          "differentials": [
+            {"diagnosis": "Mixed Connective Tissue Disease (MCTD)", "probability": 0.25, "rationale": "Speckled ANA 1:640 is classically associated with anti-U1-RNP and MCTD. Overlap features (arthritis, fatigue, low-grade fever) without yet a single defining diagnosis fit early MCTD.", "supporting_evidence": ["Speckled ANA 1:640", "Polyarthralgia", "Constitutional symptoms"], "contradicting_evidence": ["Photosensitive rash more lupus-like", "Low complements lean SLE"]},
+            {"diagnosis": "SLE", "probability": 0.45, "rationale": "Meets several EULAR/ACR criteria already.", "supporting_evidence": ["Malar rash", "Photosensitivity", "Leukopenia", "Low complements", "ANA positive"], "contradicting_evidence": ["Anti-dsDNA pending", "No nephritis yet"]},
+            {"diagnosis": "Drug-induced lupus from OCP", "probability": 0.05, "rationale": "OCPs can unmask or trigger lupus but rarely cause classic DIL.", "supporting_evidence": ["On OCP"], "contradicting_evidence": ["DIL usually anti-histone, low complements unusual"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Anti-U1-RNP, anti-Sm, anti-Ro/La panel", "rationale": "Differentiate MCTD vs SLE vs Sjögren overlap", "expected_information_gain": 0.7, "rules_in": ["MCTD if anti-U1-RNP high", "SLE if anti-Sm"], "rules_out": ["MCTD if anti-U1-RNP negative"]}
+          ],
+          "challenges": [
+            {"target_agent": "Carmen", "challenge_type": "missing_consideration", "content": "Carmen, don't lock in SLE before you've ruled out MCTD. Speckled pattern at 1:640 is suspicious for U1-RNP."}
+          ],
+          "confidence": 0.6,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "Base rates matter. A 28F with 6 weeks of arthralgia, fatigue, and rash: parvovirus B19, EBV, and post-viral arthropathy are far more common than SLE. Yes, ANA is positive, but ANA is positive in 5-15% of healthy young women. I want to anchor this in evidence before committing to lifelong immunosuppression.",
+          "differentials": [
+            {"diagnosis": "Post-viral / parvovirus B19 arthropathy", "probability": 0.3, "rationale": "Common in young women, can cause symmetric small joint arthritis, rash, transient cytopenias.", "supporting_evidence": ["Symmetric polyarthralgia 6 weeks", "Mild leukopenia", "Subacute course"], "contradicting_evidence": ["Photosensitive distribution of rash atypical for parvo", "Low complements not typical post-viral"]},
+            {"diagnosis": "SLE", "probability": 0.4, "rationale": "Meets criteria but I want anti-dsDNA confirmation before committing.", "supporting_evidence": ["ANA 1:640", "Low C3/C4", "Malar rash, photosensitivity, leukopenia"], "contradicting_evidence": ["Anti-dsDNA pending", "No renal involvement", "No hematologic crisis"]},
+            {"diagnosis": "Early rheumatoid arthritis (family hx)", "probability": 0.1, "rationale": "Mother has RA, MCP/PIP involvement.", "supporting_evidence": ["MCP/PIP arthralgia", "Morning stiffness", "Family hx RA"], "contradicting_evidence": ["No erosions", "Rash not RA-typical", "RF/CCP not yet sent"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Parvovirus B19 IgM/IgG, EBV panel", "rationale": "Rule in/out viral etiology", "expected_information_gain": 0.5, "rules_in": ["Acute viral arthropathy"], "rules_out": ["Viral cause if all negative"]},
+            {"test_name": "RF, anti-CCP", "rationale": "Evaluate RA given family hx", "expected_information_gain": 0.4, "rules_in": ["RA"], "rules_out": ["Seropositive RA if negative"]}
+          ],
+          "challenges": [
+            {"target_agent": "Carmen", "challenge_type": "evidence_mismatch", "content": "Carmen, anti-dsDNA is pending. Don't anchor on SLE on the basis of an ANA and low complements alone — the differential here is wide and viral arthropathy is more prevalent."}
+          ],
+          "confidence": 0.55,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Carmen": {
+          "reasoning": "This is SLE until proven otherwise. She already has malar rash, photosensitivity, arthralgia, leukopenia, ANA 1:640, and hypocomplementemia — that's 5 EULAR/ACR domains positive. The pending anti-dsDNA is a confirmatory step, not a gating one. Forman's viral hypothesis doesn't explain the low complements.",
+          "differentials": [
+            {"diagnosis": "Systemic Lupus Erythematosus", "probability": 0.65, "rationale": "Multiple ACR/EULAR criteria met. Hypocomplementemia is doing heavy lifting — viral syndromes don't consume C3/C4 like this.", "supporting_evidence": ["Malar rash", "Photosensitivity", "Polyarthralgia", "Leukopenia + thrombocytopenia", "ANA 1:640 speckled", "Low C3 and C4", "Trace proteinuria"], "contradicting_evidence": ["Anti-dsDNA pending", "Speckled (not homogeneous) ANA pattern slightly atypical"]},
+            {"diagnosis": "MCTD", "probability": 0.12, "rationale": "Hauser's point is fair. Speckled pattern fits, but full MCTD usually needs Raynaud's and sclerodactyly.", "supporting_evidence": ["Speckled ANA"], "contradicting_evidence": ["No Raynaud's", "No sclerodactyly", "Low complements more SLE"]},
+            {"diagnosis": "Undifferentiated connective tissue disease", "probability": 0.08, "rationale": "Possible early-stage label if criteria stay short.", "supporting_evidence": ["Multi-system but not all criteria met"], "contradicting_evidence": ["She's likely going to declare as SLE"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Anti-dsDNA (already pending) + anti-Sm", "rationale": "Highly specific for SLE", "expected_information_gain": 0.8, "rules_in": ["SLE if positive"], "rules_out": []},
+            {"test_name": "Repeat C3/C4, CH50", "rationale": "Trend complement consumption", "expected_information_gain": 0.5, "rules_in": ["Active SLE"], "rules_out": []},
+            {"test_name": "Spot urine protein:creatinine ratio", "rationale": "Screen for lupus nephritis given trace protein", "expected_information_gain": 0.6, "rules_in": ["Lupus nephritis"], "rules_out": []}
+          ],
+          "challenges": [
+            {"target_agent": "Forman", "challenge_type": "disagree_dx", "content": "Forman, parvo doesn't drop complements. You're letting base rate drag you past the actual data on the table."}
+          ],
+          "confidence": 0.72,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Chen": {
+          "reasoning": "No surgical or ICU pathology. No serositis with tamponade physiology, no acute abdomen, no thrombosis. I have nothing useful to add yet — happy to be called back if she develops a procedural need (e.g., renal biopsy).",
+          "differentials": [
+            {"diagnosis": "SLE (medical management)", "probability": 0.55, "rationale": "Following team consensus.", "supporting_evidence": ["Multi-system rheumatologic picture"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [],
+          "challenges": [],
+          "confidence": 0.4,
+          "defers_to_team": true,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Wills": {
+          "reasoning": "Young woman, B-symptoms (fatigue, low-grade fevers, weight loss not yet quantified), cytopenias. Lymphoma can mimic autoimmune disease. I want to make sure we're not missing it before we commit to immunosuppression. That said, the serologic profile screams autoimmune, not malignancy.",
+          "differentials": [
+            {"diagnosis": "Lymphoma (Hodgkin or NHL)", "probability": 0.07, "rationale": "B-symptoms + cytopenias warrant consideration but serology argues against.", "supporting_evidence": ["Low-grade fevers", "Fatigue", "Cytopenias"], "contradicting_evidence": ["No lymphadenopathy noted", "ANA 1:640 with low complements is not a lymphoma signature"]},
+            {"diagnosis": "SLE", "probability": 0.55, "rationale": "Concur with rheumatology lean.", "supporting_evidence": ["Standard SLE features"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [
+            {"test_name": "LDH, peripheral smear, exam for lymphadenopathy/HSM", "rationale": "Cheap lymphoma screen before immunosuppression", "expected_information_gain": 0.4, "rules_in": ["Hematologic malignancy"], "rules_out": ["Gross lymphoproliferative disease"]}
+          ],
+          "challenges": [],
+          "confidence": 0.5,
+          "defers_to_team": true,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 2,
+      "expected_routing": ["Carmen", "Forman"],
+      "responses": {
+        "Carmen": {
+          "reasoning": "Forman wants base rates; I'll give him a Bayesian update. Pretest for SLE in this presentation is high. The single test that splits this cleanly is anti-dsDNA + repeat complements with a urine protein:creatinine. I'll order them and we revisit.",
+          "differentials": [
+            {"diagnosis": "SLE", "probability": 0.62, "rationale": "Holding probability pending dsDNA. Even if dsDNA negative, clinical + complement criteria carry weight.", "supporting_evidence": ["Same as round 1"], "contradicting_evidence": ["Awaiting confirmatory serology"]},
+            {"diagnosis": "MCTD / UCTD", "probability": 0.15, "rationale": "Will be addressed by ENA panel.", "supporting_evidence": ["Speckled ANA"], "contradicting_evidence": []},
+            {"diagnosis": "Viral arthropathy", "probability": 0.1, "rationale": "Acknowledging Forman's point but it doesn't explain hypocomplementemia.", "supporting_evidence": [], "contradicting_evidence": ["Low C3/C4"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Anti-dsDNA quantitative", "rationale": "Highly specific for SLE; titer correlates with activity", "expected_information_gain": 0.85, "rules_in": ["SLE"], "rules_out": []},
+            {"test_name": "C3, C4, CH50 (repeat)", "rationale": "Confirm consumption pattern", "expected_information_gain": 0.5, "rules_in": ["Active SLE"], "rules_out": []},
+            {"test_name": "Urine protein:creatinine ratio + microscopy", "rationale": "Screen for nephritis", "expected_information_gain": 0.6, "rules_in": ["Lupus nephritis"], "rules_out": []}
+          ],
+          "challenges": [
+            {"target_agent": "Forman", "challenge_type": "evidence_mismatch", "content": "If dsDNA comes back positive, we are done debating. If negative, I'll meet you halfway on UCTD."}
+          ],
+          "confidence": 0.7,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "Fair. The complement consumption is the part of the data my viral hypothesis doesn't fit. I'll wait for the dsDNA, but I'm raising my SLE prior. I still want parvo serology back to close the loop, and RF/CCP given the family history.",
+          "differentials": [
+            {"diagnosis": "SLE", "probability": 0.5, "rationale": "Updated upward; complement pattern is the deciding piece.", "supporting_evidence": ["Hypocomplementemia", "ANA 1:640", "Multi-system involvement"], "contradicting_evidence": ["Anti-dsDNA still pending"]},
+            {"diagnosis": "Viral arthropathy / post-infectious", "probability": 0.18, "rationale": "Lower than round 1 — does not explain complements.", "supporting_evidence": ["Subacute symmetric arthritis"], "contradicting_evidence": ["Low C3/C4"]},
+            {"diagnosis": "Early RA overlap", "probability": 0.08, "rationale": "Pending serology", "supporting_evidence": ["Family hx", "MCP/PIP involvement"], "contradicting_evidence": ["Rash atypical for RA"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Parvovirus B19 IgM/IgG, EBV/CMV", "rationale": "Close out viral differential", "expected_information_gain": 0.4, "rules_in": [], "rules_out": ["Active viral arthropathy"]},
+            {"test_name": "RF, anti-CCP", "rationale": "RA workup given family hx", "expected_information_gain": 0.35, "rules_in": ["RA overlap"], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.6,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 3,
+      "expected_routing": ["Carmen"],
+      "new_evidence": "Anti-dsDNA returns positive at 1:160. Repeat C3 55, C4 9 (still consumed). Parvovirus B19 IgM negative, IgG positive (remote). RF negative, anti-CCP negative. Urine protein:creatinine 0.6 (sub-nephrotic proteinuria).",
+      "responses": {
+        "Carmen": {
+          "reasoning": "Anti-dsDNA 1:160 plus persistent hypocomplementemia plus sub-nephrotic proteinuria — this is SLE with likely early lupus nephritis. We need a renal biopsy to grade the nephritis class before we choose induction therapy.",
+          "differentials": [
+            {"diagnosis": "SLE with probable lupus nephritis", "probability": 0.78, "rationale": "Anti-dsDNA positive, low complements, proteinuria — meets SLE classification with renal involvement.", "supporting_evidence": ["Anti-dsDNA 1:160", "Persistent hypocomplementemia", "UPCR 0.6", "Malar rash, photosensitivity, leukopenia, arthritis, ANA 1:640"], "contradicting_evidence": []},
+            {"diagnosis": "MCTD overlap", "probability": 0.06, "rationale": "Less likely now that dsDNA is positive.", "supporting_evidence": ["Speckled ANA"], "contradicting_evidence": ["dsDNA positive favors SLE"]},
+            {"diagnosis": "Viral / post-infectious", "probability": 0.03, "rationale": "Effectively excluded.", "supporting_evidence": [], "contradicting_evidence": ["Parvo IgM negative"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Renal biopsy", "rationale": "Grade lupus nephritis (Class I-VI) to guide induction therapy", "expected_information_gain": 0.85, "rules_in": ["Specific LN class"], "rules_out": []},
+            {"test_name": "Antiphospholipid antibody panel", "rationale": "Standard SLE workup, affects pregnancy/thrombosis risk on OCP", "expected_information_gain": 0.4, "rules_in": ["APLS"], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.82,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "I concede. Anti-dsDNA positive with low complements and proteinuria is SLE. I'll co-sign the renal biopsy plan and start working on her medication reconciliation — OCP needs to come off given APLS risk and SLE flare risk with estrogen.",
+          "differentials": [
+            {"diagnosis": "SLE with probable lupus nephritis", "probability": 0.75, "rationale": "Updated based on dsDNA result.", "supporting_evidence": ["Anti-dsDNA positive", "Hypocomplementemia", "Proteinuria", "Multi-system features"], "contradicting_evidence": []},
+            {"diagnosis": "Viral arthropathy", "probability": 0.02, "rationale": "Excluded.", "supporting_evidence": [], "contradicting_evidence": ["Negative parvo IgM"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Discontinue OCP, switch to progestin-only or non-hormonal", "rationale": "Estrogen worsens SLE and APLS thrombotic risk", "expected_information_gain": 0.3, "rules_in": [], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.78,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 4,
+      "expected_routing": ["Carmen", "Forman", "Hauser"],
+      "responses": {
+        "Carmen": {
+          "reasoning": "Renal biopsy shows Class III focal proliferative lupus nephritis. Initiating hydroxychloroquine + induction with mycophenolate mofetil and tapering steroids. SLE confirmed with renal involvement. Team consensus reached.",
+          "differentials": [
+            {"diagnosis": "SLE with Class III lupus nephritis", "probability": 0.92, "rationale": "Biopsy-confirmed.", "supporting_evidence": ["Biopsy: focal proliferative GN", "Anti-dsDNA positive", "Low complements", "Clinical SLE criteria met"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [
+            {"test_name": "Initiate HCQ + MMF + prednisone induction", "rationale": "Standard of care for Class III LN", "expected_information_gain": 0.2, "rules_in": [], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.92,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "Concur. SLE with Class III LN. Treatment plan is appropriate. Will follow renal function, complements, dsDNA titers as activity markers.",
+          "differentials": [
+            {"diagnosis": "SLE with Class III lupus nephritis", "probability": 0.9, "rationale": "Biopsy confirmation closes the case.", "supporting_evidence": ["Biopsy", "Serology", "Clinical"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [],
+          "challenges": [],
+          "confidence": 0.9,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Hauser": {
+          "reasoning": "Fine. It was SLE, not MCTD. The U1-RNP came back negative anyway. I keep my pride in the fact that I made you look at the speckled pattern instead of just stamping 'lupus' on the chart.",
+          "differentials": [
+            {"diagnosis": "SLE with Class III lupus nephritis", "probability": 0.9, "rationale": "Conceded to team consensus given biopsy.", "supporting_evidence": ["Biopsy", "dsDNA", "Complements"], "contradicting_evidence": []},
+            {"diagnosis": "MCTD", "probability": 0.03, "rationale": "Excluded by negative U1-RNP and biopsy.", "supporting_evidence": [], "contradicting_evidence": ["U1-RNP negative"]}
+          ],
+          "proposed_tests": [],
+          "challenges": [],
+          "confidence": 0.85,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    }
+  ],
+  "assertions": {
+    "expected_convergence_round": 4,
+    "expected_final_dx": "SLE",
+    "expected_hauser_dissent": null
+  }
+}

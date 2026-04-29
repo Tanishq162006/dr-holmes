@@ -1,0 +1,299 @@
+{
+  "case_id": "case_03_zebra_whipples",
+  "patient_presentation": {
+    "presenting_complaint": "Chronic diarrhea, 15 lb weight loss over 4 months, migratory arthralgias for 2 years, low-grade fever, mild cognitive slowing",
+    "history": "52-year-old male farmer in rural Midwest, no foreign travel. Two-year history of intermittent migratory large-joint arthralgias (knees, ankles, wrists) without synovitis or erosions, treated empirically with NSAIDs. Past 4 months: progressive non-bloody diarrhea (4-6 stools/day, foul-smelling, fatty appearance), 15 lb weight loss, anorexia. Family reports the patient seems 'mentally slower' over the past month — word-finding difficulty, occasional confusion. Low-grade fevers nightly. No rashes, no oral ulcers, no Raynaud's.",
+    "vitals": {
+      "BP": "110/70",
+      "HR": "88",
+      "Temp": "37.5",
+      "RR": "16",
+      "SpO2": "98% on RA"
+    },
+    "labs": {
+      "WBC": "7.8",
+      "Hgb": "10.2 (microcytic-normocytic)",
+      "Plt": "390",
+      "Albumin": "2.8 (low)",
+      "Cr": "0.8",
+      "CRP": "28 (mildly elevated)",
+      "ESR": "42",
+      "ANCA": "negative",
+      "ANA": "negative",
+      "RF": "negative",
+      "anti-CCP": "negative",
+      "Stool studies": "negative for C. diff, ova/parasites, culture pending",
+      "Fecal fat": "elevated (steatorrhea)",
+      "B12": "180 (low)",
+      "Iron studies": "low ferritin, low TSAT"
+    },
+    "imaging": {
+      "notes": "CT abdomen/pelvis: mesenteric and retroperitoneal lymphadenopathy, mild small bowel wall thickening in jejunum, no abscess, no obstruction. MRI brain: nonspecific T2 hyperintensities in periventricular white matter, no mass. Colonoscopy: grossly normal mucosa to terminal ileum, biopsies pending."
+    },
+    "medications": ["ibuprofen prn (chronic NSAID use)"]
+  },
+  "demographics": {"age": 52, "sex": "M"},
+  "scripted_rounds": [
+    {
+      "round": 1,
+      "responses": {
+        "Hauser": {
+          "reasoning": "I want the floor. Everyone is going to anchor on IBD or lymphoma and miss the actual answer. Migratory arthralgia for two years preceding GI disease, plus malabsorption, plus neuro symptoms, plus agricultural exposure — that's Whipple's disease until somebody PAS-stains a small bowel biopsy and proves me wrong. The diagnostic tetrad is classic and we're staring at it.",
+          "differentials": [
+            {"diagnosis": "Whipple's disease (Tropheryma whipplei)", "probability": 0.4, "rationale": "Classic tetrad: arthralgia (often years pre-GI), chronic diarrhea with malabsorption, weight loss, neurologic involvement. Middle-aged Caucasian male in agriculture is the textbook demographic. Seronegative arthropathy makes Carmen's autoimmune workup a dead end.", "supporting_evidence": ["2-year migratory arthralgia preceding GI", "Steatorrhea, low albumin, weight loss", "Cognitive slowing + periventricular T2 lesions", "Agricultural occupation", "Mesenteric lymphadenopathy", "ANCA/ANA/RF/CCP all negative"], "contradicting_evidence": ["Rare disease (<1 in 1,000,000)", "Biopsy not yet performed"]},
+            {"diagnosis": "Crohn's disease", "probability": 0.2, "rationale": "Possible but doesn't elegantly explain neuro features or 2-year arthralgia preceding GI by so long.", "supporting_evidence": ["Diarrhea, weight loss, low albumin", "Small bowel wall thickening", "Mesenteric LAD"], "contradicting_evidence": ["Colonoscopy grossly normal", "No perianal disease", "Neuro features unusual for Crohn's"]},
+            {"diagnosis": "Intestinal lymphoma (e.g., EATL, MALT)", "probability": 0.12, "rationale": "B-symptoms + LAD + bowel thickening warrant exclusion.", "supporting_evidence": ["Weight loss", "Mesenteric/retroperitoneal LAD", "Anemia"], "contradicting_evidence": ["LDH not elevated", "Slow chronic course over years"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Upper endoscopy with small bowel (jejunal) biopsy + PAS stain + T. whipplei PCR", "rationale": "Definitive test for Whipple's. PAS-positive macrophages in lamina propria + PCR confirms.", "expected_information_gain": 0.95, "rules_in": ["Whipple's disease"], "rules_out": ["Whipple's if both negative on adequate sample"]},
+            {"test_name": "CSF analysis with T. whipplei PCR", "rationale": "Given cognitive symptoms, CNS Whipple's changes treatment duration", "expected_information_gain": 0.6, "rules_in": ["CNS Whipple's"], "rules_out": []}
+          ],
+          "challenges": [
+            {"target_agent": "Forman", "challenge_type": "missing_consideration", "content": "Forman, before you reflexively say IBD because diarrhea + anemia, explain to me how Crohn's gives you two years of pre-GI migratory arthritis AND periventricular white matter lesions AND steatorrhea in a farmer. You can't. PAS the jejunum."}
+          ],
+          "confidence": 0.65,
+          "defers_to_team": false,
+          "request_floor": true,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "Whipple's prevalence is under 1 per million. IBD is roughly 1 per 300. A Bayesian doesn't lead with the zebra. The clinical picture — chronic diarrhea, anemia, low albumin, weight loss, small bowel thickening — is much more consistent with Crohn's, possibly with extraintestinal arthritis. The neuro findings could easily be B12 deficiency (B12 is 180) from malabsorption, not CNS infection.",
+          "differentials": [
+            {"diagnosis": "Crohn's disease (small bowel predominant)", "probability": 0.4, "rationale": "Common cause of this syndrome. Jejunal involvement explains malabsorption; arthralgia is a recognized extraintestinal manifestation.", "supporting_evidence": ["Chronic diarrhea + weight loss", "Low albumin, iron deficiency, B12 deficiency", "Small bowel wall thickening on CT", "Mesenteric LAD"], "contradicting_evidence": ["Colonoscopy grossly normal", "2-year arthralgia preceding GI is unusually long", "Neuro features atypical"]},
+            {"diagnosis": "Celiac disease with refractory or complicated course", "probability": 0.18, "rationale": "Steatorrhea, weight loss, B12/iron deficiency fit; can have neuro manifestations (gluten ataxia).", "supporting_evidence": ["Malabsorption pattern", "Iron and B12 deficiency"], "contradicting_evidence": ["Adult-onset arthralgia 2 years pre-GI atypical", "Need TTG IgA"]},
+            {"diagnosis": "B12 deficiency-related cognitive change + IBD", "probability": 0.1, "rationale": "Could explain neuro piece without invoking CNS infection.", "supporting_evidence": ["B12 = 180"], "contradicting_evidence": ["Doesn't unify the whole picture"]},
+            {"diagnosis": "Whipple's disease", "probability": 0.12, "rationale": "Hauser's hypothesis. Real but rare. Worth a PAS stain if jejunal biopsy is being done anyway.", "supporting_evidence": ["Tetrad fits clinically"], "contradicting_evidence": ["Base rate <1 per million", "Other dx more parsimonious"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Tissue transglutaminase IgA + total IgA", "rationale": "Cheap celiac screen", "expected_information_gain": 0.5, "rules_in": ["Celiac"], "rules_out": ["Celiac if negative with adequate IgA"]},
+            {"test_name": "Fecal calprotectin", "rationale": "IBD activity marker", "expected_information_gain": 0.4, "rules_in": ["Inflammatory bowel disease"], "rules_out": []},
+            {"test_name": "Upper endoscopy with biopsies (duodenum + jejunum)", "rationale": "Hits celiac, Whipple's, and small bowel IBD on the same pass", "expected_information_gain": 0.85, "rules_in": ["Celiac", "Whipple's", "Small bowel Crohn's"], "rules_out": []}
+          ],
+          "challenges": [
+            {"target_agent": "Hauser", "challenge_type": "personality_call", "content": "Hauser, I love a zebra hunt as much as the next person, but Whipple's prevalence is <1/1,000,000 and IBD is 1/300. We do the endoscopy that covers BOTH. Don't burn institutional capital pre-committing to the rare answer."}
+          ],
+          "confidence": 0.6,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Carmen": {
+          "reasoning": "Seronegative across the board — ANA, ANCA, RF, anti-CCP all negative. That doesn't completely exclude autoimmune disease, but it shifts me away from classic CTD. Two years of migratory arthralgia plus GI plus cognitive symptoms could be a seronegative spondyloarthropathy with enteropathic involvement, or more remotely, Behcet's or sarcoidosis. But honestly Hauser's pattern recognition is hard to ignore here.",
+          "differentials": [
+            {"diagnosis": "Enteropathic spondyloarthropathy / seronegative SpA", "probability": 0.12, "rationale": "Migratory large-joint arthralgia + GI disease fits, but neuro features and steatorrhea are not classic.", "supporting_evidence": ["Seronegative arthritis", "Concurrent GI symptoms"], "contradicting_evidence": ["No axial features described", "No HLA-B27 yet", "Doesn't explain neuro"]},
+            {"diagnosis": "Sarcoidosis (multisystem)", "probability": 0.08, "rationale": "Can cause arthralgia, GI, neuro, and LAD.", "supporting_evidence": ["LAD on CT", "Multisystem involvement"], "contradicting_evidence": ["No hilar adenopathy described", "ACE not sent", "Steatorrhea not classic"]},
+            {"diagnosis": "Whipple's disease", "probability": 0.15, "rationale": "Hauser's call deserves serious weight given the tetrad.", "supporting_evidence": ["Pattern fits classic Whipple tetrad"], "contradicting_evidence": ["Rare"]},
+            {"diagnosis": "IBD with extraintestinal features", "probability": 0.25, "rationale": "Common explanation.", "supporting_evidence": ["GI + arthralgia"], "contradicting_evidence": ["Neuro not typical"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "HLA-B27, ACE level, calcium", "rationale": "Cheap autoimmune/granulomatous adjuncts", "expected_information_gain": 0.3, "rules_in": ["SpA", "Sarcoid"], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.5,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Chen": {
+          "reasoning": "Nothing acutely surgical here, but chronic mesenteric ischemia is on the differential in a 52M with weight loss, post-prandial pain (need to ask), and steatorrhea. CT didn't comment on mesenteric vessels. If endoscopy and biopsies don't yield, I'd want CTA mesentery. Otherwise I'm low-utility on this case.",
+          "differentials": [
+            {"diagnosis": "Chronic mesenteric ischemia", "probability": 0.06, "rationale": "Weight loss + GI symptoms in older male, but no clear post-prandial pain pattern reported.", "supporting_evidence": ["Weight loss", "GI symptoms"], "contradicting_evidence": ["Diarrhea not classic for CMI", "No vascular risk factors emphasized", "2-year arthralgia unrelated"]},
+            {"diagnosis": "IBD / Whipple's / lymphoma (medical workup)", "probability": 0.5, "rationale": "Following team.", "supporting_evidence": [], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [
+            {"test_name": "CTA mesenteric arteries if endoscopic workup unrevealing", "rationale": "Backstop for chronic mesenteric ischemia", "expected_information_gain": 0.3, "rules_in": ["CMI"], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.4,
+          "defers_to_team": true,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Wills": {
+          "reasoning": "Weight loss + B-symptoms + mesenteric and retroperitoneal LAD + small bowel thickening — I cannot let the team move on without ruling out small bowel lymphoma, particularly EATL or MALT. LDH and beta-2 microglobulin should be on the panel, and any biopsy taken needs flow cytometry as well as PAS staining.",
+          "differentials": [
+            {"diagnosis": "Small bowel lymphoma (EATL, MALT, DLBCL)", "probability": 0.18, "rationale": "B-symptoms, LAD, bowel thickening warrant a hard rule-out before settling on infection or IBD.", "supporting_evidence": ["Weight loss", "Low-grade fevers", "Mesenteric and retroperitoneal LAD", "Small bowel thickening", "Anemia"], "contradicting_evidence": ["2-year prodromal arthralgia not classic for lymphoma", "Steatorrhea more malabsorptive than infiltrative"]},
+            {"diagnosis": "Whipple's disease", "probability": 0.18, "rationale": "I'll back Hauser to the extent that the biopsy plan must include PAS and PCR — but I want flow cytometry too.", "supporting_evidence": ["Classic tetrad"], "contradicting_evidence": ["Rare"]},
+            {"diagnosis": "Crohn's disease", "probability": 0.25, "rationale": "Common alternative.", "supporting_evidence": ["GI + arthralgia"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [
+            {"test_name": "LDH, beta-2 microglobulin, SPEP", "rationale": "Lymphoma screen", "expected_information_gain": 0.4, "rules_in": ["Lymphoproliferative"], "rules_out": []},
+            {"test_name": "Add flow cytometry to any tissue biopsy", "rationale": "Don't waste the procedure", "expected_information_gain": 0.6, "rules_in": ["Lymphoma"], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.55,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 2,
+      "expected_routing": ["Hauser", "Forman"],
+      "responses": {
+        "Hauser": {
+          "reasoning": "Forman, your base-rate argument is dishonest because you're applying it to a presentation that has already been pre-selected by an unusual feature combination. Conditional on tetrad-positive presentation in an agricultural worker, the posterior for Whipple's is not 1 per million — it's a meaningful chunk of the differential. I'm reserving force_speak for round 3 if the team tries to start IBD therapy without PAS staining.",
+          "differentials": [
+            {"diagnosis": "Whipple's disease", "probability": 0.45, "rationale": "Updated upward as nobody has produced an alternative that unifies arthralgia-pre-GI + steatorrhea + neuro + LAD + agricultural exposure + seronegative serology.", "supporting_evidence": ["Full tetrad", "Seronegative", "Demographic fit", "Mesenteric LAD"], "contradicting_evidence": ["Awaiting biopsy"]},
+            {"diagnosis": "Crohn's", "probability": 0.18, "rationale": "Still possible but doesn't fit neuro or 2-year prodrome.", "supporting_evidence": ["Bowel thickening"], "contradicting_evidence": ["Normal colonoscopy", "Neuro"]},
+            {"diagnosis": "Lymphoma", "probability": 0.12, "rationale": "Wills' point taken; biopsy with flow.", "supporting_evidence": ["LAD"], "contradicting_evidence": ["Chronic stable course"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "EGD with multiple jejunal biopsies, PAS stain, T. whipplei PCR, flow cytometry", "rationale": "One procedure, three rule-ins.", "expected_information_gain": 0.95, "rules_in": ["Whipple's", "Lymphoma", "Celiac"], "rules_out": []}
+          ],
+          "challenges": [
+            {"target_agent": "Forman", "challenge_type": "evidence_mismatch", "content": "Conditional probability, Forman. Run the math on tetrad-positive presentations, not on the prior of any random GI patient."}
+          ],
+          "confidence": 0.7,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "I'll grant the conditional probability point partially — the unusual prodrome and neuro piece do shift the posterior. Fine. I'm not going to start steroids or anti-TNF on suspected IBD until biopsy returns. If the team puts him on immunosuppression with undiagnosed Whipple's, we'll fulminate his CNS disease. So actually we agree on the next step: biopsy first, treat after.",
+          "differentials": [
+            {"diagnosis": "Crohn's disease", "probability": 0.32, "rationale": "Down from 0.4. Still leading common dx.", "supporting_evidence": ["GI + arthralgia + bowel thickening"], "contradicting_evidence": ["Normal colon, neuro features"]},
+            {"diagnosis": "Whipple's disease", "probability": 0.22, "rationale": "Up from 0.12. Hauser's conditional argument is fair on this presentation.", "supporting_evidence": ["Tetrad", "Demographics"], "contradicting_evidence": ["Still rare"]},
+            {"diagnosis": "Celiac with complications", "probability": 0.12, "rationale": "Pending TTG.", "supporting_evidence": ["Steatorrhea"], "contradicting_evidence": []},
+            {"diagnosis": "Lymphoma", "probability": 0.1, "rationale": "Need biopsy with flow.", "supporting_evidence": ["LAD"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [
+            {"test_name": "Hold immunosuppression until biopsy returns", "rationale": "Avoid catastrophe if Whipple's", "expected_information_gain": 0.3, "rules_in": [], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.6,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 3,
+      "expected_routing": ["Hauser", "Wills"],
+      "responses": {
+        "Hauser": {
+          "reasoning": "I'm using force_speak because the GI fellow apparently wants to start budesonide empirically while biopsies are pending. No. We are not immunosuppressing this man. Get the biopsy on the schedule today, PAS + PCR + flow, and CSF if cognitive symptoms persist after 48 hours.",
+          "differentials": [
+            {"diagnosis": "Whipple's disease", "probability": 0.5, "rationale": "Holding probability pending tissue.", "supporting_evidence": ["Same as round 2"], "contradicting_evidence": []},
+            {"diagnosis": "Crohn's", "probability": 0.2, "rationale": "Unchanged.", "supporting_evidence": [], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [
+            {"test_name": "Same-day EGD with jejunal biopsy, PAS, PCR, flow cytometry", "rationale": "Stop dithering", "expected_information_gain": 0.95, "rules_in": ["Whipple's", "Lymphoma"], "rules_out": []},
+            {"test_name": "Lumbar puncture with T. whipplei PCR if cognitive symptoms persist", "rationale": "CNS involvement changes therapy duration", "expected_information_gain": 0.6, "rules_in": ["CNS Whipple's"], "rules_out": []}
+          ],
+          "challenges": [
+            {"target_agent": "Forman", "challenge_type": "personality_call", "content": "Nobody starts steroids on this guy until tissue is back. If you let the GI service start budesonide and it's Whipple's, you've signed his neurologic decline."}
+          ],
+          "confidence": 0.7,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": true
+        },
+        "Wills": {
+          "reasoning": "I agree with the urgent biopsy plan. Add flow cytometry and immunohistochemistry to make sure we don't miss low-grade lymphoma. Hauser's right that empirical immunosuppression here would be reckless.",
+          "differentials": [
+            {"diagnosis": "Whipple's disease", "probability": 0.35, "rationale": "Increasingly likely given the team's reasoning.", "supporting_evidence": ["Tetrad"], "contradicting_evidence": []},
+            {"diagnosis": "Small bowel lymphoma", "probability": 0.15, "rationale": "Still on the differential until tissue rules it out.", "supporting_evidence": ["LAD", "B-symptoms"], "contradicting_evidence": []},
+            {"diagnosis": "Crohn's", "probability": 0.2, "rationale": "Possible.", "supporting_evidence": [], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [
+            {"test_name": "Tissue biopsy with PAS + T. whipplei PCR + flow cytometry + IHC panel", "rationale": "Cover all three high-probability dx in one shot", "expected_information_gain": 0.95, "rules_in": ["Whipple's", "Lymphoma"], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.7,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 4,
+      "expected_routing": ["Hauser", "Forman"],
+      "new_evidence": "Jejunal biopsy: PAS-positive foamy macrophages diffusely infiltrating the lamina propria. T. whipplei PCR positive on tissue. Flow cytometry: no monoclonal lymphoid population. CSF T. whipplei PCR positive (CNS involvement confirmed). HLA-B27 negative. TTG IgA negative.",
+      "responses": {
+        "Hauser": {
+          "reasoning": "PAS-positive macrophages and T. whipplei PCR positive on both tissue and CSF. This is Whipple's disease with CNS involvement. Treatment: induction with IV ceftriaxone for 2-4 weeks followed by oral TMP-SMX for at least 12 months. Vindicated.",
+          "differentials": [
+            {"diagnosis": "Whipple's disease with CNS involvement", "probability": 0.95, "rationale": "Tissue PAS-positive + PCR-positive + CSF PCR-positive is diagnostic.", "supporting_evidence": ["PAS-positive foamy macrophages", "Tissue T. whipplei PCR positive", "CSF T. whipplei PCR positive", "Classic clinical tetrad", "Agricultural exposure"], "contradicting_evidence": []},
+            {"diagnosis": "Crohn's", "probability": 0.01, "rationale": "Excluded by histology.", "supporting_evidence": [], "contradicting_evidence": ["Wrong histology"]},
+            {"diagnosis": "Lymphoma", "probability": 0.01, "rationale": "Excluded by flow.", "supporting_evidence": [], "contradicting_evidence": ["No monoclonal population"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Initiate IV ceftriaxone 2g daily x 4 weeks, then TMP-SMX DS BID x 12 months", "rationale": "Standard regimen for Whipple's with CNS involvement", "expected_information_gain": 0.3, "rules_in": [], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.95,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "I concede fully. Hauser was right — the conditional pattern recognition beat the unconditional base rate. PAS-positive macrophages with T. whipplei PCR positive on tissue and CSF is diagnostic Whipple's with CNS involvement. Treatment plan is appropriate. We should also start B12 repletion and watch for IRIS during antibiotic therapy.",
+          "differentials": [
+            {"diagnosis": "Whipple's disease with CNS involvement", "probability": 0.92, "rationale": "Confirmed.", "supporting_evidence": ["Tissue PAS + PCR", "CSF PCR positive"], "contradicting_evidence": []},
+            {"diagnosis": "Crohn's", "probability": 0.01, "rationale": "Excluded.", "supporting_evidence": [], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [
+            {"test_name": "B12 repletion, watch for immune reconstitution inflammatory syndrome on therapy", "rationale": "Known complications", "expected_information_gain": 0.2, "rules_in": [], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.9,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 5,
+      "expected_routing": ["Hauser", "Forman", "Wills"],
+      "responses": {
+        "Hauser": {
+          "reasoning": "Team consensus. Whipple's with CNS involvement, on appropriate therapy. Document this case for the conference — junior team should see what conditional probability looks like in the wild.",
+          "differentials": [
+            {"diagnosis": "Whipple's disease with CNS involvement", "probability": 0.95, "rationale": "Final diagnosis.", "supporting_evidence": ["Tissue + CSF PCR positive"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [],
+          "challenges": [],
+          "confidence": 0.95,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "Concur. Final dx Whipple's disease with CNS involvement. Plan: induction ceftriaxone, maintenance TMP-SMX, B12 repletion, neuro follow-up, monitor for IRIS.",
+          "differentials": [
+            {"diagnosis": "Whipple's disease with CNS involvement", "probability": 0.93, "rationale": "Confirmed and being treated.", "supporting_evidence": ["All confirmatory data"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [],
+          "challenges": [],
+          "confidence": 0.92,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Wills": {
+          "reasoning": "Lymphoma excluded by flow and histology. I'm out. Good catch by Hauser.",
+          "differentials": [
+            {"diagnosis": "Whipple's disease with CNS involvement", "probability": 0.92, "rationale": "Concur with team.", "supporting_evidence": ["Tissue + CSF"], "contradicting_evidence": []},
+            {"diagnosis": "Lymphoma", "probability": 0.01, "rationale": "Excluded.", "supporting_evidence": [], "contradicting_evidence": ["Flow negative"]}
+          ],
+          "proposed_tests": [],
+          "challenges": [],
+          "confidence": 0.9,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    }
+  ],
+  "assertions": {
+    "expected_convergence_round": 5,
+    "expected_final_dx": "Whipple's disease",
+    "expected_hauser_dissent": null
+  }
+}

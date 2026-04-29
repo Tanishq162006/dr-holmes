@@ -1,0 +1,44 @@
+# ── Secrets ──────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ── Data (large, regenerable) ────────────────────────────────────────────
+data/
+fixtures/case_*.json.bak
+
+# ── Python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# ── Editor / OS ──────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+.claude/
+CLAUDE.md.local
+
+# ── Tooling ──────────────────────────────────────────────────────────────
+.coverage
+htmlcov/
+.python-version
+node_modules/
+
+# ── Local outputs ────────────────────────────────────────────────────────
+trace_*.json
+*.log
+logs/

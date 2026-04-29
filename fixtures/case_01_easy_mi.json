@@ -1,0 +1,155 @@
+{
+  "case_id": "case_01_easy_mi",
+  "patient_presentation": {
+    "presenting_complaint": "Crushing substernal chest pain for 1 hour, radiating to left arm, with diaphoresis",
+    "history": "58-year-old male, hypertension on lisinopril, ex-smoker (30 pack-years), father died of MI at 60. No prior cardiac workup. Pain began at rest, 9/10 severity, not relieved by rest.",
+    "vitals": {
+      "BP": "95/60",
+      "HR": "110",
+      "Temp": "36.8",
+      "RR": "22",
+      "SpO2": "94% on RA"
+    },
+    "labs": {
+      "WBC": "11.2",
+      "Troponin-I": "8.5 ng/mL (markedly elevated, ref <0.04)",
+      "CK-MB": "42 ng/mL (elevated)",
+      "BNP": "180",
+      "Cr": "1.0",
+      "Lactate": "2.1"
+    },
+    "imaging": {
+      "notes": "12-lead ECG: 3mm ST elevation in V2-V4 with reciprocal depression in II, III, aVF. Portable CXR: clear lung fields, no widened mediastinum. Bedside echo pending."
+    },
+    "medications": ["lisinopril 20mg daily", "ASA 81mg (recently self-discontinued)"]
+  },
+  "demographics": {"age": 58, "sex": "M"},
+  "scripted_rounds": [
+    {
+      "round": 1,
+      "responses": {
+        "Hauser": {
+          "reasoning": "Everyone is going to scream STEMI and cath lab. Fine, the ECG and trop scream it too. But before we shovel him toward PCI, I want to make sure we're not missing a Type A aortic dissection presenting with coronary ostial involvement. The hypotension bothers me.",
+          "differentials": [
+            {"diagnosis": "STEMI (anterior wall)", "probability": 0.72, "rationale": "ST elevation V2-V4, trop 8.5, classic pain pattern. I hate that it's this obvious.", "supporting_evidence": ["3mm STE V2-V4", "Troponin 8.5", "Crushing pain radiating to arm", "Diaphoresis"], "contradicting_evidence": ["Borderline hypotension could indicate other etiology"]},
+            {"diagnosis": "Type A aortic dissection with RCA/LMCA involvement", "probability": 0.10, "rationale": "Hypotensive male with chest pain. Dissection can mimic MI when it shears a coronary ostium. CXR is reassuring but not definitive.", "supporting_evidence": ["BP 95/60 with tachycardia", "Acute severe chest pain"], "contradicting_evidence": ["No mediastinal widening on CXR", "Pain not described as tearing", "No BP differential reported"]},
+            {"diagnosis": "Acute pericarditis with myocardial involvement", "probability": 0.05, "rationale": "Lower on list but ST changes can mimic.", "supporting_evidence": ["ST elevation"], "contradicting_evidence": ["No diffuse STE pattern", "No PR depression", "Trop too high for simple pericarditis"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Bedside TTE with aortic root view", "rationale": "Rule out dissection flap and assess wall motion before cath", "expected_information_gain": 0.6, "rules_in": ["Aortic dissection", "Regional WMA confirming MI"], "rules_out": ["Type A dissection if root clean"]},
+            {"test_name": "Emergent coronary angiography", "rationale": "Definitive for STEMI, time is muscle", "expected_information_gain": 0.9, "rules_in": ["STEMI with culprit lesion"], "rules_out": ["Non-occlusive etiology"]}
+          ],
+          "challenges": [
+            {"target_agent": "Forman", "challenge_type": "missing_consideration", "content": "Forman, before you push him to the cath lab on autopilot, tell me you've actually considered why he's hypotensive. Cardiogenic shock vs dissection vs RV involvement — which is it?"}
+          ],
+          "confidence": 0.7,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "Pretest probability of STEMI here is overwhelming: 58M, classic pain, ECG criteria met, trop 8.5. Posterior probability after that ECG is north of 0.9. Hauser's dissection hunt has a base rate of ~3 per 100k; we shouldn't delay reperfusion for a zebra.",
+          "differentials": [
+            {"diagnosis": "Anterior STEMI (LAD occlusion)", "probability": 0.85, "rationale": "Meets STEMI criteria with biomarker confirmation. Anterior distribution suggests proximal LAD. Hypotension likely early cardiogenic shock or RV involvement.", "supporting_evidence": ["3mm STE V2-V4 with reciprocal changes", "Troponin 8.5 with CK-MB rise", "Classic ischemic chest pain", "Risk factors: HTN, smoking, family hx"], "contradicting_evidence": []},
+            {"diagnosis": "NSTEMI with early ST changes / Wellens evolution", "probability": 0.05, "rationale": "Mostly academic given STE criteria already met.", "supporting_evidence": ["Elevated troponin"], "contradicting_evidence": ["STE already meets STEMI criteria"]},
+            {"diagnosis": "Aortic dissection", "probability": 0.03, "rationale": "Pretest low, no widened mediastinum, no tearing pain.", "supporting_evidence": ["Hypotension"], "contradicting_evidence": ["CXR clean", "No BP asymmetry"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Activate cath lab for primary PCI", "rationale": "Door-to-balloon <90 min is the standard. Every 30 min of delay = ~7.5% mortality increase.", "expected_information_gain": 0.95, "rules_in": ["Culprit coronary lesion"], "rules_out": ["Non-coronary etiology"]},
+            {"test_name": "Right-sided ECG (V4R)", "rationale": "Cheap, fast — RV infarct changes management (avoid nitrates, give fluids).", "expected_information_gain": 0.4, "rules_in": ["RV involvement"], "rules_out": ["Isolated LV infarct"]}
+          ],
+          "challenges": [
+            {"target_agent": "Hauser", "challenge_type": "disagree_dx", "content": "Hauser, dissection prevalence here is well under 1%. The CXR is clean and the ECG is diagnostic. We do not delay PCI to chase a zebra unless we get a hard signal."}
+          ],
+          "confidence": 0.88,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Carmen": {
+          "reasoning": "No autoimmune signal here. No rash, no arthralgias, no serositis history. Vasculitis with coronary involvement is on the shelf but it's a stretch in a 58M with classic risk factors.",
+          "differentials": [
+            {"diagnosis": "Anterior STEMI", "probability": 0.8, "rationale": "Agree with cardiology read. No autoimmune contribution apparent.", "supporting_evidence": ["ECG and trop diagnostic"], "contradicting_evidence": []},
+            {"diagnosis": "Coronary vasculitis (e.g., PAN)", "probability": 0.02, "rationale": "Very unlikely without systemic features.", "supporting_evidence": [], "contradicting_evidence": ["No constitutional symptoms", "No skin or renal findings"]}
+          ],
+          "proposed_tests": [],
+          "challenges": [],
+          "confidence": 0.6,
+          "defers_to_team": true,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Chen": {
+          "reasoning": "This is a time-critical surgical-adjacent emergency. Cath lab now. If the angio shows triple vessel or a left main, we're calling CT surgery for CABG. Door-to-balloon clock is running.",
+          "differentials": [
+            {"diagnosis": "Anterior STEMI requiring emergent revascularization", "probability": 0.82, "rationale": "Clinical, ECG, and biomarker criteria all met. Hypotension means we may be looking at cardiogenic shock — consider IABP or Impella support.", "supporting_evidence": ["STE V2-V4", "Trop 8.5", "Hypotension with tachycardia (shock physiology)"], "contradicting_evidence": []},
+            {"diagnosis": "Mechanical complication (early papillary muscle rupture, free wall)", "probability": 0.04, "rationale": "Too early in course but watch for it post-reperfusion.", "supporting_evidence": ["Hypotension"], "contradicting_evidence": ["No new murmur reported", "Time course wrong"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Emergent cardiac catheterization with PCI", "rationale": "Definitive therapy and diagnosis", "expected_information_gain": 0.95, "rules_in": ["Culprit lesion identification"], "rules_out": []},
+            {"test_name": "Bedside echo for EF and mechanical complications", "rationale": "Guides need for mechanical circulatory support", "expected_information_gain": 0.6, "rules_in": ["Cardiogenic shock", "Mechanical complication"], "rules_out": ["Tamponade"]}
+          ],
+          "challenges": [
+            {"target_agent": "Hauser", "challenge_type": "disagree_dx", "content": "Hauser, we can do a 30-second aortic root look on bedside echo en route to the lab. We are not delaying reperfusion."}
+          ],
+          "confidence": 0.85,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Wills": {
+          "reasoning": "No oncologic angle in an acute STEMI. No constitutional symptoms, no lymphadenopathy, no concerning imaging findings. Defer to cardiology and surgical teams.",
+          "differentials": [
+            {"diagnosis": "Anterior STEMI", "probability": 0.8, "rationale": "Consensus dx, no malignancy contribution.", "supporting_evidence": ["Standard STEMI criteria"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [],
+          "challenges": [],
+          "confidence": 0.55,
+          "defers_to_team": true,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 2,
+      "expected_routing": ["Hauser", "Chen"],
+      "responses": {
+        "Hauser": {
+          "reasoning": "Bedside echo shows anterior wall hypokinesis, aortic root is clean, no flap. Trop trending up to 12.4. Fine. It's a STEMI. I'll concede the dissection. But somebody owes me a follow-up CT chest after PCI just to be sure.",
+          "differentials": [
+            {"diagnosis": "Anterior STEMI (proximal LAD)", "probability": 0.9, "rationale": "Echo confirms regional WMA in LAD distribution, root clean, troponin trajectory consistent with infarct.", "supporting_evidence": ["Anterior WMA on echo", "Rising trop 8.5 -> 12.4", "ST elevation persists", "Clean aortic root"], "contradicting_evidence": []},
+            {"diagnosis": "Type A aortic dissection", "probability": 0.02, "rationale": "Conceded. Root looks clean on bedside study.", "supporting_evidence": [], "contradicting_evidence": ["No aortic flap on TTE", "No mediastinal widening", "Wall motion matches LAD territory"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Post-PCI CT chest with contrast", "rationale": "Definitively rule out dissection once stable. Cheap insurance.", "expected_information_gain": 0.3, "rules_in": [], "rules_out": ["Aortic dissection"]}
+          ],
+          "challenges": [],
+          "confidence": 0.88,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Chen": {
+          "reasoning": "Patient is in the cath lab. 100% proximal LAD occlusion confirmed, drug-eluting stent placed, TIMI-3 flow restored. EF 35%. Hemodynamics improved post-reperfusion. This is settled.",
+          "differentials": [
+            {"diagnosis": "Anterior STEMI s/p successful PCI to proximal LAD", "probability": 0.95, "rationale": "Angiographically confirmed culprit lesion, successfully revascularized.", "supporting_evidence": ["Proximal LAD 100% occlusion on angio", "Successful stenting with TIMI-3 flow", "Anterior WMA on echo, EF 35%"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [
+            {"test_name": "Dual antiplatelet therapy + high-intensity statin + beta-blocker as tolerated", "rationale": "Standard post-STEMI medical therapy", "expected_information_gain": 0.2, "rules_in": [], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.95,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    }
+  ],
+  "assertions": {
+    "expected_convergence_round": 2,
+    "expected_final_dx": "STEMI",
+    "expected_hauser_dissent": null
+  }
+}
