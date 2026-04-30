@@ -1,17 +1,48 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCaseStore } from "@/lib/stores/caseStore";
 import { formatProb, probColor, probBgColor, cn } from "@/lib/utils";
 import { useSettingsStore } from "@/lib/stores/settingsStore";
 import { ProbabilityBar } from "@/components/differentials/ProbabilityBar";
 
+const interventionIcon: Record<string, string> = {
+  inject_evidence: "📋",
+  question_agent: "💬",
+  correct_agent: "✓",
+  conclude_now: "⚠",
+  pause: "⏸",
+  resume: "▶",
+};
+
+function summarizePayload(type: string, payload: Record<string, unknown>): string {
+  if (type === "inject_evidence") {
+    const name = (payload.name ?? payload.evidence_name ?? "evidence") as string;
+    const value = (payload.value ?? payload.evidence_value ?? "?") as string | number;
+    return `${name} = ${value}`;
+  }
+  if (type === "question_agent") {
+    const target = (payload.target_agent ?? payload.target ?? "?") as string;
+    const q = (payload.question ?? "") as string;
+    return q ? `→ ${target}: ${q.slice(0, 60)}${q.length > 60 ? "…" : ""}` : `→ ${target}`;
+  }
+  if (type === "correct_agent") {
+    const target = (payload.target_agent ?? payload.target ?? "?") as string;
+    return `→ ${target}`;
+  }
+  if (type === "conclude_now") return "force-conclude";
+  return "";
+}
+
 export function DifferentialsPane() {
   const ddx = useCaseStore((s) => s.currentDifferentials);
   const challenges = useCaseStore((s) => s.activeChallenges);
   const finalReport = useCaseStore((s) => s.finalReport);
   const status = useCaseStore((s) => s.status);
+  const interventionHistory = useCaseStore((s) => s.interventionHistory);
   const threshold = useSettingsStore((s) => s.convergenceThreshold);
+  const [historyOpen, setHistoryOpen] = useState(true);
 
   const top5 = ddx.slice(0, 5);
   const converged = status === "concluded" && top5[0]?.probability >= threshold;
@@ -99,6 +130,74 @@ export function DifferentialsPane() {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      {/* Intervention history */}
+      <section>
+        <button
+          type="button"
+          onClick={() => setHistoryOpen((o) => !o)}
+          className="w-full flex items-baseline justify-between mb-2 text-left"
+        >
+          <h2 className="smallcaps text-xs text-[hsl(var(--muted-foreground))]">
+            Intervention history
+          </h2>
+          <span className="flex items-center gap-2">
+            {interventionHistory.length > 0 && (
+              <span className="text-[10px] tabular text-[hsl(var(--muted-foreground))]">
+                {interventionHistory.length}
+              </span>
+            )}
+            <span className="text-[10px] text-[hsl(var(--muted-foreground))]">
+              {historyOpen ? "▾" : "▸"}
+            </span>
+          </span>
+        </button>
+        {historyOpen && (
+          interventionHistory.length === 0 ? (
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">No interventions yet.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {interventionHistory.map((h) => {
+                const failed = !h.applied;
+                const summary = summarizePayload(h.type, h.payload);
+                const ts = new Date(h.timestamp);
+                const tsStr = isNaN(ts.getTime())
+                  ? h.timestamp
+                  : ts.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+                return (
+                  <li
+                    key={h.intervention_id}
+                    className={cn(
+                      "text-xs flex items-start gap-1.5 px-2 py-1.5 rounded border",
+                      failed
+                        ? "bg-rose-500/10 border-rose-500/40 text-rose-500"
+                        : "bg-[hsl(var(--muted))]/30 border-[hsl(var(--border))]",
+                    )}
+                  >
+                    <span aria-hidden>{interventionIcon[h.type] ?? "•"}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="font-medium">{h.type.replace(/_/g, " ")}</span>
+                      {summary && (
+                        <span className="block text-[11px] mt-0.5 italic text-[hsl(var(--muted-foreground))] truncate">
+                          {summary}
+                        </span>
+                      )}
+                      {failed && h.failure_reason && (
+                        <span className="block text-[11px] mt-0.5 italic">
+                          failed: {h.failure_reason}
+                        </span>
+                      )}
+                      <span className="block text-[10px] tabular text-[hsl(var(--muted-foreground))] mt-0.5">
+                        {tsStr}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )
         )}
       </section>
 

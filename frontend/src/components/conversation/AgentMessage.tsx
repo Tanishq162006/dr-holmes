@@ -15,15 +15,57 @@ export function AgentMessage({
 }) {
   const meta = metaFor(agent);
   const top = response.differentials[0];
+  const turnType = response.turn_type ?? "normal";
+  const isSpecial = turnType !== "normal";
+
+  const turnBadge: Record<string, { label: string; cls: string; tint: string; stripe: string }> = {
+    question_response: {
+      label: "💬 ANSWERING DOCTOR'S QUESTION",
+      cls: "bg-blue-500/15 text-blue-500 border-blue-500/40",
+      tint: "bg-blue-500/5",
+      stripe: "bg-blue-500",
+    },
+    correction_response: {
+      label: "✓ CORRECTION ACKNOWLEDGED",
+      cls: "bg-amber-500/15 text-amber-500 border-amber-500/40",
+      tint: "bg-amber-500/5",
+      stripe: "bg-amber-500",
+    },
+    evidence_acknowledgment: {
+      label: "📋 NEW EVIDENCE NOTED",
+      cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/40",
+      tint: "bg-emerald-500/5",
+      stripe: "bg-emerald-500",
+    },
+    forced_conclusion_dissent: {
+      label: "⚠ DISSENT (CASE FORCE-CONCLUDED)",
+      cls: "bg-rose-500/15 text-rose-500 border-rose-500/40",
+      tint: "bg-rose-500/5",
+      stripe: "bg-rose-500",
+    },
+  };
+  const badge = isSpecial ? turnBadge[turnType] : null;
 
   return (
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
-      className="relative pl-5 py-4 pr-1"
+      className={`relative pl-5 py-4 pr-1 ${badge ? `${badge.tint} rounded-md` : ""}`}
     >
-      <div className={`absolute left-0 top-4 bottom-2 w-[3px] rounded-full ${meta.bgClass} opacity-90`} />
+      <div
+        className={`absolute left-0 top-4 bottom-2 rounded-full opacity-90 ${
+          badge ? `w-[4px] ${badge.stripe}` : `w-[3px] ${meta.bgClass}`
+        }`}
+      />
+
+      {badge && (
+        <div className="ml-9 mb-1.5">
+          <span className={`text-[10px] smallcaps inline-block px-1.5 py-0.5 rounded border ${badge.cls}`}>
+            {badge.label}
+          </span>
+        </div>
+      )}
 
       <header className="flex items-baseline gap-2">
         <div className={`w-7 h-7 rounded-full ${meta.bgClass} text-white grid place-items-center text-[11px] font-bold shrink-0`}>

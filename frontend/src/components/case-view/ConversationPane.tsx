@@ -6,6 +6,10 @@ import { AgentMessage } from "@/components/conversation/AgentMessage";
 import { RoundDivider } from "@/components/conversation/RoundDivider";
 import { CaddickRoutingNote } from "@/components/conversation/CaddickRoutingNote";
 import { DissentPanel } from "@/components/conversation/DissentPanel";
+import {
+  InterventionMarker,
+  type InterventionMarkerKind,
+} from "@/components/conversation/InterventionMarker";
 import { useMemo } from "react";
 import type { WSEvent, AgentResponse } from "@/lib/types/wire";
 
@@ -44,6 +48,9 @@ export function ConversationPane() {
                   />
                 );
               }
+              if (it.kind === "intervention") {
+                return <InterventionMarker key={i} kind={it.markerKind} text={it.text} />;
+              }
               return null;
             })}
             {finalReport?.hauser_dissent && (
@@ -59,7 +66,8 @@ export function ConversationPane() {
 type Item =
   | { kind: "round"; round: number; tokenCount?: number }
   | { kind: "agent"; agent: string; response: AgentResponse }
-  | { kind: "caddick"; nextSpeakers: string[]; reason: string; synthesis: string };
+  | { kind: "caddick"; nextSpeakers: string[]; reason: string; synthesis: string }
+  | { kind: "intervention"; markerKind: InterventionMarkerKind; text: string };
 
 function buildItems(events: WSEvent[], showThinking: boolean): Item[] {
   const items: Item[] = [];
@@ -77,6 +85,42 @@ function buildItems(events: WSEvent[], showThinking: boolean): Item[] {
         nextSpeakers: p.next_speakers,
         reason: p.routing_reason,
         synthesis: p.synthesis_text,
+      });
+    } else if (ev.event_type === "evidence_injected") {
+      const p = ev.payload as {
+        name?: string;
+        value?: string | number;
+        evidence_name?: string;
+        evidence_value?: string | number;
+        conflict?: { name: string; prev_value: string; new_value: string } | null;
+      };
+      const name = p.name ?? p.evidence_name ?? "evidence";
+      const value = String(p.value ?? p.evidence_value ?? "?");
+      items.push({
+        kind: "intervention",
+        markerKind: "evidence_injected",
+        text: `Doctor injected: ${name} = ${value}`,
+      });
+      if (p.conflict) {
+        items.push({
+          kind: "intervention",
+          markerKind: "evidence_conflict",
+          text: `EVIDENCE CONFLICT: ${p.conflict.name} was ${p.conflict.prev_value}, now ${p.conflict.new_value}`,
+        });
+      }
+    } else if (ev.event_type === "intervention_failed") {
+      const p = ev.payload as {
+        intervention_type?: string;
+        type?: string;
+        failure_reason?: string;
+        reason?: string;
+      };
+      const t = p.intervention_type ?? p.type ?? "unknown";
+      const r = p.failure_reason ?? p.reason ?? "unknown";
+      items.push({
+        kind: "intervention",
+        markerKind: "intervention_failed",
+        text: `Intervention failed: ${t} — ${r}`,
       });
     }
     // showThinking: would render agent_thinking events here. Phase 5 omits

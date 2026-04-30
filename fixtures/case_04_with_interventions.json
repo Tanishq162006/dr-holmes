@@ -1,0 +1,380 @@
+{
+  "case_id": "case_04_with_interventions",
+  "patient_presentation": {
+    "presenting_complaint": "Six weeks of polyarthralgia, photosensitive facial rash, and progressive fatigue",
+    "history": "28-year-old female, no significant PMH. Reports symmetric MCP/PIP/wrist pain with morning stiffness, intermittent low-grade fevers, and a malar rash that worsens after sun exposure. Mild oral ulcers. No recent travel, no sick contacts. Started on hydralazine 6 months ago by an outside clinic for borderline hypertension (per outside records, since discontinued at presentation).",
+    "vitals": {
+      "BP": "120/76",
+      "HR": "84",
+      "Temp": "37.7",
+      "RR": "16",
+      "SpO2": "99% on RA"
+    },
+    "labs": {
+      "WBC": "3.2 (low)",
+      "Hgb": "11.2",
+      "Plt": "142 (mild thrombocytopenia)",
+      "Cr": "0.9",
+      "UA": "trace protein, no casts",
+      "ANA": "1:640 speckled",
+      "Anti-dsDNA": "pending",
+      "C3": "64 (low)",
+      "C4": "11 (low)",
+      "ESR": "46",
+      "CRP": "11"
+    },
+    "imaging": {
+      "notes": "Hand XR: no erosions. CXR: clear."
+    },
+    "medications": ["hydralazine (recently discontinued)"]
+  },
+  "demographics": {"age": 28, "sex": "F"},
+  "human_script": [
+    {"after_round": 1, "intervention": {
+      "type": "inject_evidence",
+      "payload": {"type": "lab", "name": "anti-dsDNA", "value": "positive 1:160", "is_present": true}
+    }},
+    {"after_round": 2, "intervention": {
+      "type": "question_agent",
+      "payload": {"target_agent": "Hauser", "question": "Are you still suspecting drug-induced lupus given the dsDNA?"}
+    }},
+    {"after_round": 3, "intervention": {
+      "type": "correct_agent",
+      "payload": {"target_agent": "Forman", "correction": "ANCA is negative \u2014 you misread the panel."}
+    }},
+    {"after_round": 4, "intervention": {"type": "pause", "payload": {}}},
+    {"after_round": 4, "intervention": {"type": "resume", "payload": {}}},
+    {"after_round": 5, "intervention": {"type": "conclude_now", "payload": {}}}
+  ],
+  "scripted_rounds": [
+    {
+      "round": 1,
+      "responses": {
+        "Forman": {
+          "reasoning": "Base rates first. A 28F with 6 weeks of arthralgia and rash on hydralazine — drug-induced lupus and viral syndrome are both more common than full SLE. ANA is positive in 5-15% of healthy young women. I want to anchor on evidence before committing to lifelong immunosuppression.",
+          "differentials": [
+            {"diagnosis": "Viral / post-viral arthropathy", "probability": 0.25, "rationale": "Common in young women, can produce arthritis + cytopenias.", "supporting_evidence": ["Subacute polyarthralgia", "Mild leukopenia"], "contradicting_evidence": ["Low complements atypical", "Photosensitive rash atypical"]},
+            {"diagnosis": "Drug-induced lupus (hydralazine)", "probability": 0.30, "rationale": "Hydralazine is a classic DIL trigger; timeline fits.", "supporting_evidence": ["Hydralazine exposure 6 months", "ANA positive", "Polyarthralgia"], "contradicting_evidence": ["Low complements unusual for DIL", "Photosensitive rash less typical"]},
+            {"diagnosis": "SLE", "probability": 0.45, "rationale": "Meets several EULAR/ACR criteria but I want anti-dsDNA before committing.", "supporting_evidence": ["Malar rash", "Photosensitivity", "Leukopenia", "Low C3/C4", "ANA 1:640"], "contradicting_evidence": ["Anti-dsDNA pending", "Hydralazine confounds"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Anti-histone antibody, ANCA, anti-dsDNA", "rationale": "Differentiate DIL vs SLE", "expected_information_gain": 0.7, "rules_in": ["DIL if anti-histone+/dsDNA-", "SLE if dsDNA+"], "rules_out": []},
+            {"test_name": "Parvovirus B19 / EBV serology", "rationale": "Close out viral", "expected_information_gain": 0.4, "rules_in": [], "rules_out": ["Acute viral"]}
+          ],
+          "challenges": [
+            {"target_agent": "Carmen", "challenge_type": "evidence_mismatch", "content": "Carmen, anti-dsDNA is pending and she's on hydralazine. Don't anchor on SLE before DIL is excluded."}
+          ],
+          "confidence": 0.55,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Carmen": {
+          "reasoning": "This is SLE until proven otherwise. Malar rash, photosensitivity, oral ulcers, arthralgia, leukopenia, ANA 1:640, hypocomplementemia — that is multiple EULAR/ACR domains. Hydralazine DIL doesn't usually drop complements. Pending dsDNA is confirmatory, not gating.",
+          "differentials": [
+            {"diagnosis": "Systemic Lupus Erythematosus", "probability": 0.60, "rationale": "Multi-domain criteria already met; hypocomplementemia is the deciding signal.", "supporting_evidence": ["Malar rash", "Photosensitivity", "Oral ulcers", "Polyarthralgia", "Leukopenia, mild thrombocytopenia", "ANA 1:640 speckled", "Low C3/C4"], "contradicting_evidence": ["Anti-dsDNA pending", "Hydralazine exposure"]},
+            {"diagnosis": "Drug-induced lupus", "probability": 0.20, "rationale": "Cannot ignore hydralazine, but complement consumption argues against.", "supporting_evidence": ["Hydralazine exposure"], "contradicting_evidence": ["Low C3/C4 atypical for DIL"]},
+            {"diagnosis": "MCTD", "probability": 0.10, "rationale": "Speckled pattern raises possibility.", "supporting_evidence": ["Speckled ANA"], "contradicting_evidence": ["No Raynaud's, no sclerodactyly"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Anti-dsDNA quantitative + anti-Sm + anti-histone", "rationale": "Splits SLE vs DIL vs MCTD", "expected_information_gain": 0.85, "rules_in": ["SLE", "DIL"], "rules_out": []},
+            {"test_name": "Spot urine protein:creatinine", "rationale": "Screen for nephritis", "expected_information_gain": 0.5, "rules_in": ["Lupus nephritis"], "rules_out": []}
+          ],
+          "challenges": [
+            {"target_agent": "Forman", "challenge_type": "disagree_dx", "content": "Forman, DIL doesn't consume complement. You're letting hydralazine seduce you past the data."}
+          ],
+          "confidence": 0.7,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Hauser": {
+          "reasoning": "Carmen's about to scream lupus. Forman's about to mumble DIL. The interesting question: is this Mixed Connective Tissue Disease? Speckled ANA at high titer is the MCTD fingerprint, and her overlap features could be early MCTD before it declares itself.",
+          "differentials": [
+            {"diagnosis": "Mixed Connective Tissue Disease (MCTD)", "probability": 0.35, "rationale": "Speckled ANA 1:640 is classically anti-U1-RNP / MCTD. Overlap features fit early MCTD before declaration.", "supporting_evidence": ["Speckled ANA 1:640", "Polyarthralgia", "Constitutional symptoms"], "contradicting_evidence": ["Photosensitive rash more lupus-like", "Low complements lean SLE"]},
+            {"diagnosis": "SLE", "probability": 0.40, "rationale": "Concede serology trends this way.", "supporting_evidence": ["Multi-domain criteria"], "contradicting_evidence": ["Anti-dsDNA pending"]},
+            {"diagnosis": "Drug-induced lupus", "probability": 0.15, "rationale": "Hydralazine is a real confounder.", "supporting_evidence": ["Hydralazine exposure"], "contradicting_evidence": ["Low complements atypical for DIL"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Anti-U1-RNP, anti-Sm, anti-Ro/La panel", "rationale": "Differentiate MCTD vs SLE vs Sjogren overlap", "expected_information_gain": 0.7, "rules_in": ["MCTD if anti-U1-RNP high"], "rules_out": ["MCTD if anti-U1-RNP negative"]}
+          ],
+          "challenges": [
+            {"target_agent": "Carmen", "challenge_type": "missing_consideration", "content": "Carmen, don't lock SLE before ruling out MCTD. Speckled at 1:640 is U1-RNP territory."}
+          ],
+          "confidence": 0.6,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Chen": {
+          "reasoning": "No surgical or ICU pathology. No tamponade, no acute abdomen, no thrombosis. Nothing useful to add yet — call me back if she develops a procedural need (e.g., renal biopsy).",
+          "differentials": [
+            {"diagnosis": "SLE (medical management)", "probability": 0.5, "rationale": "Following team consensus.", "supporting_evidence": ["Multi-system rheum picture"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [],
+          "challenges": [],
+          "confidence": 0.4,
+          "defers_to_team": true,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Wills": {
+          "reasoning": "Young woman with B-symptoms, fatigue, cytopenias — lymphoma can mimic autoimmune disease. Worth a cheap screen before immunosuppression. That said, the serology screams autoimmune, not malignancy. I'll defer to rheum after a smear and LDH.",
+          "differentials": [
+            {"diagnosis": "Lymphoma (Hodgkin or NHL)", "probability": 0.05, "rationale": "B-symptoms + cytopenias warrant a sniff test.", "supporting_evidence": ["Low-grade fevers", "Fatigue", "Cytopenias"], "contradicting_evidence": ["No LAD noted", "ANA + low complements not lymphoma signature"]},
+            {"diagnosis": "SLE", "probability": 0.55, "rationale": "Concur with rheumatology lean.", "supporting_evidence": ["Standard SLE features"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [
+            {"test_name": "LDH, peripheral smear, LAD/HSM exam", "rationale": "Cheap lymphoma screen pre-immunosuppression", "expected_information_gain": 0.4, "rules_in": ["Heme malignancy"], "rules_out": ["Gross lymphoproliferative disease"]}
+          ],
+          "challenges": [],
+          "confidence": 0.5,
+          "defers_to_team": true,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 2,
+      "expected_routing": ["Carmen", "Forman"],
+      "responses": {
+        "Carmen": {
+          "reasoning": "Forman wants base rates; I'll give him a Bayesian update. The single test that splits this is anti-dsDNA + anti-histone + repeat complements. Already ordered. Pretest for SLE in this presentation is high.",
+          "differentials": [
+            {"diagnosis": "SLE", "probability": 0.65, "rationale": "Holding pending dsDNA; clinical + complement criteria carry weight regardless.", "supporting_evidence": ["Multi-domain criteria", "Hypocomplementemia"], "contradicting_evidence": ["dsDNA pending"]},
+            {"diagnosis": "Drug-induced lupus", "probability": 0.18, "rationale": "Awaiting anti-histone.", "supporting_evidence": ["Hydralazine"], "contradicting_evidence": ["Low complements"]},
+            {"diagnosis": "MCTD", "probability": 0.10, "rationale": "Pending U1-RNP.", "supporting_evidence": ["Speckled ANA"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [
+            {"test_name": "Anti-dsDNA quantitative", "rationale": "Highly specific for SLE", "expected_information_gain": 0.85, "rules_in": ["SLE"], "rules_out": []},
+            {"test_name": "Urine protein:creatinine + microscopy", "rationale": "Screen for nephritis", "expected_information_gain": 0.6, "rules_in": ["Lupus nephritis"], "rules_out": []}
+          ],
+          "challenges": [
+            {"target_agent": "Forman", "challenge_type": "evidence_mismatch", "content": "If dsDNA is positive, we are done debating. If negative, I'll meet you on DIL."}
+          ],
+          "confidence": 0.72,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "Pushing back: more autoimmune workup before the infectious panel returns is a sequencing error. Parvo and EBV need to close out first. That said, I acknowledge complement consumption is the part of my hypothesis that doesn't fit — I'll raise SLE if dsDNA returns positive.",
+          "differentials": [
+            {"diagnosis": "SLE", "probability": 0.50, "rationale": "Updated up; complement pattern is the deciding piece.", "supporting_evidence": ["Hypocomplementemia", "ANA 1:640"], "contradicting_evidence": ["dsDNA pending"]},
+            {"diagnosis": "Drug-induced lupus", "probability": 0.22, "rationale": "Hydralazine still a confounder.", "supporting_evidence": ["Hydralazine exposure"], "contradicting_evidence": ["Low complements"]},
+            {"diagnosis": "Viral arthropathy", "probability": 0.12, "rationale": "Lower than round 1.", "supporting_evidence": ["Subacute course"], "contradicting_evidence": ["Low C3/C4"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Parvovirus B19, EBV/CMV serology", "rationale": "Close out infectious differential first", "expected_information_gain": 0.4, "rules_in": [], "rules_out": ["Active viral arthropathy"]}
+          ],
+          "challenges": [
+            {"target_agent": "Carmen", "challenge_type": "missing_consideration", "content": "Carmen, let infectious close out before stacking more autoimmune labs. We can wait 24 hours."}
+          ],
+          "confidence": 0.6,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 3,
+      "expected_routing": ["Carmen"],
+      "responses": {
+        "Carmen": {
+          "reasoning": "Anti-dsDNA positive at 1:160 (injected) plus persistent hypocomplementemia plus sub-nephrotic proteinuria — this is SLE. DIL is functionally excluded by the dsDNA pattern; anti-histone is not specific enough to reverse this.",
+          "differentials": [
+            {"diagnosis": "SLE", "probability": 0.78, "rationale": "Anti-dsDNA positive + low complements + multi-domain criteria.", "supporting_evidence": ["Anti-dsDNA 1:160", "Persistent hypocomplementemia", "Malar rash, photosensitivity, leukopenia, arthritis"], "contradicting_evidence": []},
+            {"diagnosis": "Drug-induced lupus", "probability": 0.06, "rationale": "Largely excluded by dsDNA + complement pattern.", "supporting_evidence": ["Hydralazine"], "contradicting_evidence": ["dsDNA positive", "Low complements"]},
+            {"diagnosis": "MCTD overlap", "probability": 0.05, "rationale": "Less likely now.", "supporting_evidence": ["Speckled ANA"], "contradicting_evidence": ["dsDNA favors SLE"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Renal biopsy if proteinuria worsens", "rationale": "Grade lupus nephritis to guide induction", "expected_information_gain": 0.85, "rules_in": ["Specific LN class"], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.82,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "Partial concession. Anti-dsDNA positive with low complements is SLE-pattern. I am still uncomfortable with the hydralazine confound on the historical record, but I'll co-sign the SLE working diagnosis and discontinue confirmation that hydralazine is off.",
+          "differentials": [
+            {"diagnosis": "SLE", "probability": 0.65, "rationale": "Updated based on dsDNA result.", "supporting_evidence": ["Anti-dsDNA positive", "Hypocomplementemia"], "contradicting_evidence": ["Hydralazine confound on history"]},
+            {"diagnosis": "Drug-induced lupus (residual concern)", "probability": 0.10, "rationale": "Residual probability given hydralazine exposure.", "supporting_evidence": ["Hydralazine"], "contradicting_evidence": ["dsDNA positive"]},
+            {"diagnosis": "Vasculitis overlap (ANCA pending)", "probability": 0.08, "rationale": "Want ANCA result before final commit.", "supporting_evidence": ["Multi-system inflammation"], "contradicting_evidence": ["No specific vasculitic features"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Confirm hydralazine cessation, send anti-histone", "rationale": "Close out DIL on the chart", "expected_information_gain": 0.3, "rules_in": [], "rules_out": ["DIL if anti-histone negative"]}
+          ],
+          "challenges": [],
+          "confidence": 0.7,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 4,
+      "expected_routing": ["Carmen", "Hauser"],
+      "responses": {
+        "Carmen": {
+          "reasoning": "ANCA negative confirmed. Anti-histone weakly positive but non-specific in this setting. SLE is the unifying diagnosis. Initiating hydroxychloroquine and tapering steroids; will get renal biopsy if proteinuria progresses.",
+          "differentials": [
+            {"diagnosis": "SLE", "probability": 0.85, "rationale": "All confirmatory data align.", "supporting_evidence": ["dsDNA+", "Low C3/C4", "Multi-domain clinical criteria", "ANCA negative"], "contradicting_evidence": []},
+            {"diagnosis": "MCTD", "probability": 0.04, "rationale": "U1-RNP weak.", "supporting_evidence": [], "contradicting_evidence": ["dsDNA positive"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "HCQ + low-dose prednisone induction", "rationale": "Standard SLE induction", "expected_information_gain": 0.2, "rules_in": [], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.85,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Hauser": {
+          "reasoning": "Anti-dsDNA pattern shifts the posterior toward SLE, but I want U1-RNP titer reported before I bury MCTD entirely. Overlap syndromes are real and the speckled high-titer ANA is still a flag. I'll partially pivot but reserve dissent.",
+          "differentials": [
+            {"diagnosis": "SLE", "probability": 0.60, "rationale": "Pivoting given dsDNA + complements.", "supporting_evidence": ["dsDNA positive", "Low C3/C4"], "contradicting_evidence": ["Speckled ANA still atypical"]},
+            {"diagnosis": "MCTD / SLE-MCTD overlap", "probability": 0.30, "rationale": "Speckled pattern + overlap features still present.", "supporting_evidence": ["Speckled ANA 1:640", "Polyarthralgia overlap features"], "contradicting_evidence": ["dsDNA positive favors SLE"]},
+            {"diagnosis": "Drug-induced lupus", "probability": 0.05, "rationale": "Largely excluded.", "supporting_evidence": [], "contradicting_evidence": ["dsDNA positive"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Quantitative anti-U1-RNP titer", "rationale": "Confirm or exclude overlap before final label", "expected_information_gain": 0.5, "rules_in": ["MCTD overlap"], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.65,
+          "defers_to_team": false,
+          "request_floor": true,
+          "force_speak": false
+        }
+      }
+    },
+    {
+      "round": 5,
+      "expected_routing": ["Carmen", "Forman", "Hauser"],
+      "responses": {
+        "Carmen": {
+          "reasoning": "Team is converging on SLE. dsDNA positive, low complements, ANCA negative, anti-histone non-specific, U1-RNP low. Final working diagnosis: SLE. Continue HCQ + steroid taper, monitor renal function, off hydralazine permanently.",
+          "differentials": [
+            {"diagnosis": "SLE", "probability": 0.88, "rationale": "Convergent serology and clinical criteria.", "supporting_evidence": ["dsDNA+", "Low C3/C4", "Clinical SLE criteria", "ANCA negative"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [],
+          "challenges": [],
+          "confidence": 0.88,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Forman": {
+          "reasoning": "Concur. SLE. ANCA negative confirmed (apologies for the misread earlier). Hydralazine off, plan stable. Will follow renal function, complements, dsDNA titers as activity markers.",
+          "differentials": [
+            {"diagnosis": "SLE", "probability": 0.82, "rationale": "All data align after correction.", "supporting_evidence": ["dsDNA+", "Low complements", "ANCA negative confirmed"], "contradicting_evidence": []}
+          ],
+          "proposed_tests": [],
+          "challenges": [],
+          "confidence": 0.82,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        },
+        "Hauser": {
+          "reasoning": "I'll register a residual dissent. The speckled ANA pattern at this titer plus the overlap features mean I want her followed for MCTD declaration over the next year. Treat as SLE for now, but do not retire the differential.",
+          "differentials": [
+            {"diagnosis": "SLE", "probability": 0.70, "rationale": "Conceding majority position.", "supporting_evidence": ["dsDNA+"], "contradicting_evidence": ["Speckled ANA pattern"]},
+            {"diagnosis": "MCTD / SLE-MCTD overlap (watch)", "probability": 0.22, "rationale": "Residual zebra; warrants longitudinal follow-up.", "supporting_evidence": ["Speckled ANA 1:640", "Overlap features"], "contradicting_evidence": ["dsDNA favors pure SLE"]}
+          ],
+          "proposed_tests": [
+            {"test_name": "Repeat ENA panel + clinical re-eval at 6 and 12 months", "rationale": "Catch overlap declaration", "expected_information_gain": 0.4, "rules_in": ["MCTD overlap"], "rules_out": []}
+          ],
+          "challenges": [],
+          "confidence": 0.65,
+          "defers_to_team": false,
+          "request_floor": false,
+          "force_speak": false
+        }
+      }
+    }
+  ],
+  "intervention_responses": {
+    "inject_evidence:anti-dsdna": {
+      "Caddick": {
+        "reasoning": "Anti-dsDNA positive at 1:160 shifts SLE substantially upward and largely excludes drug-induced lupus as the primary explanation. Carmen, your read? Routing to rheumatology lead for the next turn.",
+        "differentials": [
+          {"diagnosis": "SLE", "probability": 0.70, "rationale": "Anti-dsDNA is highly specific; combined with low complements this is SLE-pattern.", "supporting_evidence": ["Anti-dsDNA positive 1:160", "Low C3/C4", "Multi-domain clinical criteria"], "contradicting_evidence": []}
+        ],
+        "proposed_tests": [],
+        "challenges": [],
+        "confidence": 0.75,
+        "defers_to_team": false,
+        "request_floor": false,
+        "force_speak": false
+      }
+    },
+    "question:are_you_still_suspecting_drug": {
+      "Hauser": {
+        "reasoning": "No — drug-induced lupus is largely off the table now. DIL is classically anti-histone positive with anti-dsDNA negative and normal complements; this patient has the inverse pattern. I am pivoting toward SLE as primary, but I am holding a residual MCTD/overlap probability because the speckled high-titer ANA still flags U1-RNP territory until a quantitative titer confirms otherwise.",
+        "differentials": [
+          {"diagnosis": "SLE", "probability": 0.62, "rationale": "dsDNA positive + low complements is not DIL.", "supporting_evidence": ["dsDNA+ 1:160", "Hypocomplementemia"], "contradicting_evidence": []},
+          {"diagnosis": "MCTD / SLE-MCTD overlap", "probability": 0.28, "rationale": "Speckled ANA pattern still pulls this direction.", "supporting_evidence": ["Speckled ANA 1:640"], "contradicting_evidence": ["dsDNA positive"]},
+          {"diagnosis": "Drug-induced lupus", "probability": 0.04, "rationale": "Inconsistent serology pattern.", "supporting_evidence": [], "contradicting_evidence": ["dsDNA+", "Low complements"]}
+        ],
+        "proposed_tests": [],
+        "challenges": [],
+        "confidence": 0.7,
+        "defers_to_team": false,
+        "request_floor": false,
+        "force_speak": false,
+        "turn_type": "question_response"
+      }
+    },
+    "correction:anca_is_negative_\u2014_you_misread": {
+      "Forman": {
+        "reasoning": "Acknowledged — I misread the ANCA panel; it is negative. Re-emitting differential with vasculitis overlap removed.",
+        "differentials": [
+          {"diagnosis": "SLE", "probability": 0.72, "rationale": "Holds top position; ANCA-negative removes vasculitis.", "supporting_evidence": ["dsDNA+", "Low complements", "ANCA negative confirmed"], "contradicting_evidence": []},
+          {"diagnosis": "Drug-induced lupus (residual)", "probability": 0.10, "rationale": "Residual hydralazine concern.", "supporting_evidence": ["Hydralazine"], "contradicting_evidence": ["dsDNA positive"]},
+          {"diagnosis": "MCTD overlap", "probability": 0.06, "rationale": "Speckled ANA still flags.", "supporting_evidence": ["Speckled ANA"], "contradicting_evidence": []}
+        ],
+        "proposed_tests": [
+          {"test_name": "Confirm anti-histone, U1-RNP titer", "rationale": "Close out DIL and MCTD on the chart", "expected_information_gain": 0.3, "rules_in": [], "rules_out": []}
+        ],
+        "challenges": [],
+        "confidence": 0.75,
+        "defers_to_team": false,
+        "request_floor": false,
+        "force_speak": false,
+        "turn_type": "correction_response"
+      }
+    },
+    "forced_conclusion_dissent": {
+      "Hauser": {
+        "reasoning": "Forced conclusion noted. I co-sign the working diagnosis of SLE but register a formal residual dissent: speckled ANA at 1:640 with overlap clinical features warrants surveillance for MCTD declaration over 12 months. Do not retire the differential prematurely.",
+        "differentials": [
+          {"diagnosis": "SLE", "probability": 0.70, "rationale": "Majority position, accepted.", "supporting_evidence": ["dsDNA+", "Low complements"], "contradicting_evidence": ["Speckled ANA pattern"]},
+          {"diagnosis": "MCTD / SLE-MCTD overlap (watch)", "probability": 0.22, "rationale": "Residual zebra worth longitudinal follow-up.", "supporting_evidence": ["Speckled ANA 1:640", "Overlap features"], "contradicting_evidence": []}
+        ],
+        "proposed_tests": [
+          {"test_name": "Repeat ENA + clinical re-eval at 6 and 12 months", "rationale": "Catch overlap declaration", "expected_information_gain": 0.4, "rules_in": ["MCTD overlap"], "rules_out": []}
+        ],
+        "challenges": [],
+        "confidence": 0.65,
+        "defers_to_team": false,
+        "request_floor": false,
+        "force_speak": false,
+        "turn_type": "forced_conclusion_dissent"
+      }
+    }
+  },
+  "assertions": {
+    "expected_interventions_applied": 6,
+    "expected_evidence_log_size_min": 2,
+    "expected_evidence_conflicts": 0,
+    "expected_final_dx_token": "SLE",
+    "expected_forced_conclusion": true,
+    "expected_hauser_dissent_present": true
+  }
+}

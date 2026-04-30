@@ -16,6 +16,21 @@ export type Round = {
 
 type WSState = "idle" | "connecting" | "connected" | "reconnecting" | "disconnected";
 
+export type InterventionHistoryEntry = {
+  intervention_id: string;
+  type: string;
+  timestamp: string;
+  payload: Record<string, unknown>;
+  applied: boolean;
+  failure_reason?: string | null;
+};
+
+export type EvidenceConflictEntry = {
+  name: string;
+  prev_value: string;
+  new_value: string;
+};
+
 interface CaseStoreState {
   // Identity
   caseId: string | null;
@@ -38,6 +53,10 @@ interface CaseStoreState {
   activeChallenges: Challenge[];
   finalReport: FinalReport | null;
   rounds: Round[];
+
+  // Phase 6: HITL
+  interventionHistory: InterventionHistoryEntry[];
+  evidenceConflicts: EvidenceConflictEntry[];
 
   // WS connection
   wsState: WSState;
@@ -66,6 +85,8 @@ export const useCaseStore = create<CaseStoreState>((set, get) => ({
   activeChallenges: [],
   finalReport: null,
   rounds: [],
+  interventionHistory: [],
+  evidenceConflicts: [],
   wsState: "idle",
   wsRetryCount: 0,
   isReplay: false,
@@ -79,7 +100,9 @@ export const useCaseStore = create<CaseStoreState>((set, get) => ({
     events: [], lastSequence: 0,
     agentResponses: {}, caddickHistory: [],
     currentDifferentials: [], activeChallenges: [], finalReport: null,
-    rounds: [], wsState: "idle", wsRetryCount: 0, isReplay: false,
+    rounds: [],
+    interventionHistory: [], evidenceConflicts: [],
+    wsState: "idle", wsRetryCount: 0, isReplay: false,
   }),
 
   ingestEvents: (evs) => {
@@ -171,6 +194,84 @@ export const useCaseStore = create<CaseStoreState>((set, get) => ({
       }
       case "case_paused":     next.status = "paused"; break;
       case "case_resumed":    next.status = "running"; break;
+      case "evidence_injected": {
+        const p = ev.payload as {
+          intervention_id?: string;
+          conflict?: { name: string; prev_value: string; new_value: string } | null;
+          [k: string]: unknown;
+        };
+        next.interventionHistory = [...st.interventionHistory, {
+          intervention_id: p.intervention_id ?? `ev_${ev.sequence}`,
+          type: "inject_evidence",
+          timestamp: ev.timestamp,
+          payload: p,
+          applied: true,
+          failure_reason: null,
+        }];
+        if (p.conflict) {
+          next.evidenceConflicts = [...st.evidenceConflicts, {
+            name: p.conflict.name,
+            prev_value: p.conflict.prev_value,
+            new_value: p.conflict.new_value,
+          }];
+        }
+        break;
+      }
+      case "question_asked": {
+        const p = ev.payload as { intervention_id?: string; [k: string]: unknown };
+        next.interventionHistory = [...st.interventionHistory, {
+          intervention_id: p.intervention_id ?? `ev_${ev.sequence}`,
+          type: "question_agent",
+          timestamp: ev.timestamp,
+          payload: p,
+          applied: true,
+          failure_reason: null,
+        }];
+        break;
+      }
+      case "correction_applied": {
+        const p = ev.payload as { intervention_id?: string; [k: string]: unknown };
+        next.interventionHistory = [...st.interventionHistory, {
+          intervention_id: p.intervention_id ?? `ev_${ev.sequence}`,
+          type: "correct_agent",
+          timestamp: ev.timestamp,
+          payload: p,
+          applied: true,
+          failure_reason: null,
+        }];
+        break;
+      }
+      case "forced_conclusion": {
+        const p = ev.payload as { intervention_id?: string; [k: string]: unknown };
+        next.interventionHistory = [...st.interventionHistory, {
+          intervention_id: p.intervention_id ?? `ev_${ev.sequence}`,
+          type: "conclude_now",
+          timestamp: ev.timestamp,
+          payload: p,
+          applied: true,
+          failure_reason: null,
+        }];
+        break;
+      }
+      case "intervention_failed": {
+        const p = ev.payload as {
+          intervention_id?: string;
+          intervention_type?: string;
+          type?: string;
+          failure_reason?: string;
+          reason?: string;
+          [k: string]: unknown;
+        };
+        next.interventionHistory = [...st.interventionHistory, {
+          intervention_id: p.intervention_id ?? `ev_${ev.sequence}`,
+          type: (p.intervention_type ?? p.type ?? "unknown") as string,
+          timestamp: ev.timestamp,
+          payload: p,
+          applied: false,
+          failure_reason: p.failure_reason ?? p.reason ?? "unknown",
+        }];
+        break;
+      }
       case "case_converged":  next.status = "concluded"; break;
       case "final_report": {
         const p = ev.payload as { report: FinalReport };

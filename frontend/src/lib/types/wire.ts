@@ -58,6 +58,16 @@ export const TestProposalSchema = z.object({
 });
 export type TestProposal = z.infer<typeof TestProposalSchema>;
 
+export const TURN_TYPES = [
+  "normal",
+  "question_response",
+  "correction_response",
+  "evidence_acknowledgment",
+  "forced_conclusion_dissent",
+] as const;
+export const TurnTypeSchema = z.enum(TURN_TYPES);
+export type TurnType = z.infer<typeof TurnTypeSchema>;
+
 export const AgentResponseSchema = z.object({
   agent_name: z.string(),
   turn_number: z.number().int().nonnegative(),
@@ -69,8 +79,39 @@ export const AgentResponseSchema = z.object({
   defers_to_team: z.boolean().optional().default(false),
   request_floor: z.boolean().optional().default(false),
   force_speak: z.boolean().optional().default(false),
+  turn_type: TurnTypeSchema.optional().default("normal"),
+  responding_to: z.string().nullable().optional(),
 });
 export type AgentResponse = z.infer<typeof AgentResponseSchema>;
+
+// ── Phase 6: HITL interventions ───────────────────────────────────────────
+export const InterventionTypeSchema = z.enum([
+  "pause", "resume", "inject_evidence",
+  "question_agent", "correct_agent", "conclude_now",
+]);
+export type InterventionTypeT = z.infer<typeof InterventionTypeSchema>;
+
+export const InterventionRecordSchema = z.object({
+  intervention_id: z.string(),
+  case_id: z.string(),
+  type: InterventionTypeSchema,
+  timestamp: z.string(),
+  payload: z.record(z.string(), z.unknown()).optional().default({}),
+  sequence_number: z.number().int().nonnegative().optional().default(0),
+  applied: z.boolean().optional().default(false),
+  applied_at: z.string().nullable().optional(),
+  failure_reason: z.string().nullable().optional(),
+});
+export type InterventionRecord = z.infer<typeof InterventionRecordSchema>;
+
+export const EvidenceConflictPayloadSchema = z.object({
+  name: z.string(),
+  prev_value: z.string(),
+  new_value: z.string(),
+  prev_ts: z.string().optional().default(""),
+  new_ts: z.string().optional().default(""),
+});
+export type EvidenceConflictPayload = z.infer<typeof EvidenceConflictPayloadSchema>;
 
 // ── Final report ──────────────────────────────────────────────────────────
 export const HauserDissentSchema = z.object({
@@ -138,6 +179,7 @@ export const WS_EVENT_TYPES = [
   "challenge_raised", "challenge_resolved",
   "caddick_routing", "convergence_check",
   "case_paused", "case_resumed", "evidence_injected",
+  "question_asked", "correction_applied", "forced_conclusion", "intervention_failed",
   "case_converged", "final_report",
   "error",
 ] as const;

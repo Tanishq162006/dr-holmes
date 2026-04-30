@@ -39,11 +39,11 @@ A House MD–style diagnostic team built as a multi-agent LLM system. Six AI age
 | **3** | ✅ done | Full 6-agent team, Caddick moderator with deterministic routing, mock-LLM mode, 3 fixture cases, rich CLI |
 | **4** | ✅ done | FastAPI + WebSocket backend, audit log, Redis Streams, Postgres/SQLite persistence, Prometheus metrics |
 | **7** | ✅ done | Eval harness: 5-condition baselines, DDXPlus stratified sampling, calibration analysis (ECE, Brier, reliability bins), bootstrap CIs, deterministic LLM cache, hard budget cap, markdown reports + matplotlib charts |
-| **5** | ✅ done | Next.js 16 frontend: 3-pane case view, animated probability bars, eval browser with zero-cost case replay, dark mode, keyboard shortcuts, 5 frontend smoke tests |
-| 6 | future | Human-in-the-loop interrupt handlers (UI hooks already wired in Phase 5) |
+| **5** | ✅ done | Next.js 16 frontend: 3-pane case view, animated probability bars, eval browser with zero-cost case replay, dark mode, keyboard shortcuts |
+| **6** | ✅ done | Human-in-the-loop interrupts: pause / resume / inject evidence / question / correct / conclude — all wired through LangGraph checkpointer + interrupt_after, with Redis intervention queue, evidence-conflict detection, and forced-conclusion dissent capture |
 | 8 | future | Trace recording / demo export |
 
-**Test coverage:** `75 tests, all passing` (22 orchestration unit + 11 Phase 3 E2E + 14 Phase 4 API + 23 Phase 7 eval + 5 Phase 5 frontend).
+**Test coverage:** `93 tests, all passing` (22 orchestration unit + 11 Phase 3 E2E + 14 Phase 4 API + 23 Phase 7 eval + 15 Phase 6 HITL + 8 Phase 5 frontend).
 
 ---
 

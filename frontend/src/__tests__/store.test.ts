@@ -64,4 +64,44 @@ describe("caseStore.ingestEvent", () => {
     }));
     expect(useCaseStore.getState().status).toBe("concluded");
   });
+
+  it("captures intervention history from evidence_injected events", () => {
+    useCaseStore.getState().ingestEvent(ev(1, "evidence_injected", {
+      intervention_id: "iv_evidence_1",
+      name: "anti-dsDNA",
+      value: "positive 1:160",
+    }));
+    const hist = useCaseStore.getState().interventionHistory;
+    expect(hist.length).toBe(1);
+    expect(hist[0].intervention_id).toBe("iv_evidence_1");
+    expect(hist[0].type).toBe("inject_evidence");
+    expect(hist[0].applied).toBe(true);
+  });
+
+  it("flags evidence conflicts", () => {
+    useCaseStore.getState().ingestEvent(ev(1, "evidence_injected", {
+      intervention_id: "iv_evidence_2",
+      name: "WBC",
+      value: 14,
+      conflict: { name: "WBC", prev_value: "10", new_value: "14" },
+    }));
+    const conflicts = useCaseStore.getState().evidenceConflicts;
+    expect(conflicts.length).toBe(1);
+    expect(conflicts[0].name).toBe("WBC");
+    expect(conflicts[0].prev_value).toBe("10");
+    expect(conflicts[0].new_value).toBe("14");
+  });
+
+  it("captures intervention_failed events with failure_reason", () => {
+    useCaseStore.getState().ingestEvent(ev(1, "intervention_failed", {
+      intervention_id: "iv_failed_1",
+      intervention_type: "question_agent",
+      failure_reason: "target_agent required",
+    }));
+    const hist = useCaseStore.getState().interventionHistory;
+    expect(hist.length).toBe(1);
+    expect(hist[0].applied).toBe(false);
+    expect(hist[0].failure_reason).toBe("target_agent required");
+    expect(hist[0].type).toBe("question_agent");
+  });
 });
