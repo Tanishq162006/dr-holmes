@@ -38,12 +38,12 @@ A House MD–style diagnostic team built as a multi-agent LLM system. Six AI age
 | **2** | ✅ done | Medical Intelligence layer (Neo4j + Bayesian engine + ChromaDB), 9 structured tools, OpenAI tool-calling |
 | **3** | ✅ done | Full 6-agent team, Caddick moderator with deterministic routing, mock-LLM mode, 3 fixture cases, rich CLI |
 | **4** | ✅ done | FastAPI + WebSocket backend, audit log, Redis Streams, Postgres/SQLite persistence, Prometheus metrics |
+| **7** | ✅ done | Eval harness: 5-condition baselines, DDXPlus stratified sampling, calibration analysis (ECE, Brier, reliability bins), bootstrap CIs, deterministic LLM cache, hard budget cap, markdown reports + matplotlib charts |
 | 5 | next | Next.js + Tailwind frontend (talks to Phase 4 WebSocket) |
 | 6 | future | Human-in-the-loop interrupts, evidence injection mid-case |
-| 7 | future | Calibration eval against known-outcome cases, DSPy/prompt iteration |
 | 8 | future | Trace replay UI, demo recording |
 
-**Test coverage:** `47 tests, all passing` (22 orchestration unit + 11 E2E mock + 14 API integration).
+**Test coverage:** `70 tests, all passing` (22 orchestration unit + 11 Phase 3 E2E + 14 Phase 4 API + 23 Phase 7 eval).
 
 ---
 
@@ -189,6 +189,54 @@ See `docs/` for full architecture docs per phase.
 
 ---
 
+## Benchmarking
+
+Phase 7 ships a full eval harness for measuring the system against single-agent baselines on DDXPlus.
+
+```bash
+# Smoke test (3 cases, no LLM cost — uses full_team mock fixture)
+python3 -m dr_holmes.eval --tier smoke --conditions full_team \
+  --full-team-mock-fixture fixtures/case_01_easy_mi.json --n 3
+
+# Standard eval (200 stratified DDXPlus cases × all 5 baselines, ~$40 budget)
+python3 -m dr_holmes.eval --tier standard --all-conditions --budget 40
+
+# Re-render report from a completed run (zero LLM cost)
+python3 -m dr_holmes.eval --report --run-id run_<id>
+```
+
+**Five baseline conditions** for honest comparison:
+| # | Condition | What it measures |
+|---|---|---|
+| 1 | `gpt4o_solo` | Single GPT-4o call, no tools, no team |
+| 2 | `sonnet_solo` | Single Claude Sonnet call, no tools |
+| 3 | `gpt4o_rag` | GPT-4o + ChromaDB retrieval |
+| 4 | `gpt4o_mi_layer` | GPT-4o + full 9-tool MI layer (no team) — isolates "does the team add value beyond the tools?" |
+| 5 | `full_team` | Phase 3 multi-agent system |
+
+**Metrics** computed for every run:
+- Top-1, Top-3, Top-5 accuracy with 1000-resample bootstrapped 95% CIs
+- Mean Reciprocal Rank
+- Expected Calibration Error (10-bin), Brier score, reliability diagrams
+- Convergence rate + rounds distribution
+- Per-disease accuracy heatmap (top 10 by sample count + worst 5 by accuracy)
+- Failure-mode breakdown: hallucinated, missed_obvious, premature_convergence, schema_failure
+- Hauser dissent rate + correctness when he dissented
+
+**Cost discipline:** every LLM call goes through a deterministic SQLite cache keyed by `sha256(provider, model, prompt_version, messages, tools)`. Re-running metrics on cached responses is free. Hard `BudgetBreach` exception when you cross 95% of the cap.
+
+Run artifacts land in `data/eval_runs/{run_id}/`:
+```
+summary.md          ← human-readable, paste-ready for resume
+metrics.json        ← machine-readable run record (config, git_sha, prompt_version)
+per_case.csv        ← one row per case, every metric
+charts/
+  ├── reliability.png         ← reliability diagram with ECE annotated
+  ├── cost.png                ← cost-per-case distribution
+  ├── per_disease.png         ← per-disease accuracy bar chart
+  └── accuracy_by_condition.png  (when multiple conditions)
+```
+
 ## Running tests
 
 ```bash
@@ -199,8 +247,9 @@ python3 -m pytest tests/ -v
 22 phase-3 orchestration unit tests   (routing, convergence, aggregation)
 11 phase-3 E2E mock fixture tests
 14 phase-4 API integration tests       (REST + WebSocket)
+23 phase-7 eval pipeline tests         (cache, cost, metrics, calibration, e2e)
 ─────────────────────────────────────
-47 passing
+70 passing
 ```
 
 ---

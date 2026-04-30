@@ -150,3 +150,49 @@ Even at team consensus, if Hauser's last top dx ≠ team consensus (token-set mi
 - CLI `--api-url` mode (CLI-via-WebSocket)
 - JWT auth (Phase 5+ when frontend lands)
 - Real `evidence_injected` handling (Phase 6)
+
+---
+
+## Phase 7 — Eval harness ✅
+
+**Goal:** Measure the system against single-agent baselines on DDXPlus. Reordered ahead of Phase 5 because resume value is quantitative, not visual.
+
+### Five baseline conditions
+1. `gpt4o_solo` — single GPT-4o call, no tools, no team
+2. `sonnet_solo` — single Claude Sonnet call, no tools
+3. `gpt4o_rag` — GPT-4o + ChromaDB retrieval
+4. `gpt4o_mi_layer` — GPT-4o + 9-tool MI dispatcher (no team) ← isolates "does the team add value beyond the tools?"
+5. `full_team` — Phase 3 multi-agent system
+
+### Metrics
+- Top-1/3/5 accuracy with 1000-resample bootstrap 95% CIs
+- Mean Reciprocal Rank
+- ECE (10-bin) + Brier score + reliability diagrams
+- Convergence rate, rounds distribution (mean, median, p95)
+- Per-disease accuracy with confidence-when-correct vs wrong
+- Failure modes: hallucinated / missed_obvious / premature_convergence / schema_failure
+- Hauser dissent rate + correctness when dissented
+
+### Sampling
+DDXPlus has 1.025M cases. Stratified sampling with three modes:
+- `proportional` (default) — preserves base rates → honest headline
+- `uniform_per_disease` — fair per-disease F1
+- Difficulty-binned (easy/medium/hard from `n_evidences` + Ddx size)
+
+Three eval tiers: smoke (n=20, ~$5 budget), standard (n=200, ~$40), headline (n=1000, ~$250).
+
+### Cache + budget
+SQLite-backed deterministic LLM cache. Key = `sha256(provider, model, prompt_version, messages, tools, temp, max_tokens)`. Re-scoring with fixed metrics costs $0. `prompt_version` hash auto-invalidates on prompt edits.
+
+`CostTracker` enforces a hard budget cap with `BudgetBreach` exception at 95% of limit. Per-case + per-agent + per-condition breakdown.
+
+### Reports
+`data/eval_runs/{run_id}/` contains `summary.md`, `metrics.json`, `per_case.csv`, and matplotlib charts (`reliability.png`, `cost.png`, `per_disease.png`, `accuracy_by_condition.png`).
+
+### Tests
+- `tests/test_phase7_eval.py` — 23 tests covering cache, cost, sampler, metrics normalization, calibration (perfect + overconfident edge cases), bootstrap CI envelopes, top-5 parser robustness, and end-to-end pipeline using `full_team` mock fixture (no LLM keys needed).
+
+### What's NOT in Phase 7
+- Live LLM-driven runs across all 5 conditions (requires API keys for OpenAI + xAI + Anthropic)
+- Per-agent ablation study (run team without each agent in turn) — deferred to Phase 7.5
+- Statistical significance test between conditions (paired bootstrap) — deferred
