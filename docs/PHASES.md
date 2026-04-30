@@ -196,3 +196,81 @@ SQLite-backed deterministic LLM cache. Key = `sha256(provider, model, prompt_ver
 - Live LLM-driven runs across all 5 conditions (requires API keys for OpenAI + xAI + Anthropic)
 - Per-agent ablation study (run team without each agent in turn) — deferred to Phase 7.5
 - Statistical significance test between conditions (paired bootstrap) — deferred
+
+---
+
+## Phase 5 — Next.js frontend ✅
+
+**Goal:** Polished web UI so the system is actually usable for diagnostic deliberation. CLI is for development; this is for demos and real cases.
+
+Reordered ahead of Phase 6 because it unblocks usability — eval validates correctness later.
+
+### Stack
+
+- **Next.js 16** (App Router, Turbopack) + React 19 + TypeScript strict
+- **Tailwind v4** (CSS-only config, no `tailwind.config.js`)
+- **Zustand** for state, three stores: `caseStore` (ephemeral), `settingsStore` (persisted), `evalStore` (on-demand)
+- **Zod** validates every WS event + REST response at the network boundary
+- **Radix UI** primitives + custom shadcn-style components
+- **framer-motion** for probability bar transitions + agent message entry
+- **lucide-react** icons
+- **vitest + @testing-library/react** smoke tests
+
+### Structure
+```
+frontend/src/
+├── app/                         App Router pages
+│   ├── layout.tsx                ThemeProvider + DisclaimerBanner + Header
+│   ├── page.tsx                  Landing (CaseSelector)
+│   ├── case/[id]/page.tsx        Three-pane CaseView (live + replay)
+│   ├── eval/page.tsx             EvalRunsBrowser
+│   ├── eval/[runId]/page.tsx     EvalRunDetail with per-case grid
+│   └── disclaimer/page.tsx
+├── components/
+│   ├── layout/                   Header, ConnectionStatusPill, SettingsDrawer, DisclaimerModal, ThemeProvider
+│   ├── case-view/                CaseView, ChartPane, ConversationPane, DifferentialsPane
+│   ├── chart/                    (forms, scaffolded for Phase 6)
+│   ├── conversation/             AgentMessage, RoundDivider, CaddickRoutingNote, DissentPanel
+│   ├── differentials/            ProbabilityBar (animated)
+│   ├── controls/                 ControlBar + 4 dialogs (inject, question, correct, conclude)
+│   ├── case-selector/            CaseSelector, DemoCaseCard, ActiveCasesList, NewCaseDialog
+│   └── eval/                     EvalRunsBrowser, EvalRunDetail
+└── lib/
+    ├── types/wire.ts             Zod schemas mirroring Phase 4 WSEvent + REST types
+    ├── stores/                   caseStore, settingsStore (with persist middleware)
+    ├── ws/client.ts              CaseStreamClient with reconnect + ?from_sequence=N replay
+    ├── api.ts                    REST client (zod-validated)
+    ├── agents.ts                 Per-agent metadata (color, avatar, specialty)
+    └── utils.ts                  cn(), formatProb, probColor
+```
+
+### Key UX decisions
+- **Single AgentMessage component** — color, avatar, label all derived from a `metaFor(agent_name)` lookup. Adding a 7th agent is one row.
+- **Append-only events array** — UI is purely a function of `events[]` + `lastSequence`. Reload + WS replay rebuild identical state.
+- **De-dup on sequence** — replay overlap on reconnect is harmless.
+- **Hauser dissent never collapsed** — yellow `<DissentPanel>` rendered prominently when present in `final_report`.
+- **Convergence pulse** — top differential gets a slow green glow when status=concluded + prob ≥ threshold.
+- **Mock mode default** — settings drawer defaults to `llmMode='mock'` so demos never accidentally burn API credits.
+
+### Backend extension landed in this phase
+
+`dr_holmes/api/routes/eval_runs.py`:
+- `GET /api/eval/runs` — list completed runs from `data/eval_runs/`
+- `GET /api/eval/runs/{run_id}` — full run details + chart paths + per-condition breakdown
+- `GET /api/eval/runs/{run_id}/cases` — `per_case.csv` rows for filtering/grid
+- `GET /api/eval/runs/{run_id}/case/{case_id}/events` — saved event stream for **zero-cost case replay**
+
+This makes `/eval/[runId]/case/[caseId]?replay=true` a one-click demo of any benchmarked case without re-calling LLMs.
+
+### Tests
+- `frontend/src/__tests__/store.test.ts` — 5 tests on `caseStore.ingestEvent`: ordering, dedup, agent response capture, bayesian update, status transitions
+- All pass: `pnpm test` (1.0s)
+
+### Smoke verified end-to-end
+- `pnpm typecheck` → 0 errors
+- `pnpm build` → production build succeeds
+- `pnpm dev` + uvicorn backend together: `/`, `/eval`, `/case/[id]` all return 200, page contains expected markers ("Patient chart", "Deliberation", "Live differential")
+- Created mock case via REST → frontend loads → events render in conversation pane
+
+### Mobile policy
+Read-only single-column layout below 1024px. Editor + control bar hidden via `hidden lg:block`. Full UX desktop-only by design.

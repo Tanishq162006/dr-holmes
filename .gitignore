@@ -42,3 +42,11 @@ node_modules/
 trace_*.json
 *.log
 logs/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/coverage/
+frontend/next-env.d.ts

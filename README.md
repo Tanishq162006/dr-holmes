@@ -39,11 +39,11 @@ A House MD–style diagnostic team built as a multi-agent LLM system. Six AI age
 | **3** | ✅ done | Full 6-agent team, Caddick moderator with deterministic routing, mock-LLM mode, 3 fixture cases, rich CLI |
 | **4** | ✅ done | FastAPI + WebSocket backend, audit log, Redis Streams, Postgres/SQLite persistence, Prometheus metrics |
 | **7** | ✅ done | Eval harness: 5-condition baselines, DDXPlus stratified sampling, calibration analysis (ECE, Brier, reliability bins), bootstrap CIs, deterministic LLM cache, hard budget cap, markdown reports + matplotlib charts |
-| 5 | next | Next.js + Tailwind frontend (talks to Phase 4 WebSocket) |
-| 6 | future | Human-in-the-loop interrupts, evidence injection mid-case |
-| 8 | future | Trace replay UI, demo recording |
+| **5** | ✅ done | Next.js 16 frontend: 3-pane case view, animated probability bars, eval browser with zero-cost case replay, dark mode, keyboard shortcuts, 5 frontend smoke tests |
+| 6 | future | Human-in-the-loop interrupt handlers (UI hooks already wired in Phase 5) |
+| 8 | future | Trace recording / demo export |
 
-**Test coverage:** `70 tests, all passing` (22 orchestration unit + 11 Phase 3 E2E + 14 Phase 4 API + 23 Phase 7 eval).
+**Test coverage:** `75 tests, all passing` (22 orchestration unit + 11 Phase 3 E2E + 14 Phase 4 API + 23 Phase 7 eval + 5 Phase 5 frontend).
 
 ---
 
@@ -79,6 +79,34 @@ python3 -m dr_holmes.cli_phase3 --mock --case fixtures/case_01_easy_mi.json
 ```
 
 ---
+
+## Running the frontend
+
+```bash
+cd frontend
+pnpm install
+pnpm dev          # http://localhost:3000
+pnpm test         # vitest
+pnpm build        # production build
+```
+
+The Next.js 16 app talks to the FastAPI backend over REST + WebSocket. Boot the backend first (`python3 -m uvicorn dr_holmes.api.main:app --reload`), then `pnpm dev` in `frontend/`.
+
+**Three pages:**
+- `/` — case selector with three demo cases (mock-mode, no API keys needed) + new-case dialog
+- `/case/[id]` — three-pane diagnostic view: editable patient chart, live conversation stream with agent messages + Caddick routing notes + Hauser dissent panel, animated probability bars + open challenges + final report
+- `/eval` — benchmark browser. Replay any individual case from a completed eval run with **zero LLM cost** via cached events.
+
+**Frontend features:**
+- TypeScript strict, zod-validated WS events at the network boundary
+- Auto-reconnect WebSocket with `?from_sequence=N` replay (no event loss on reload/disconnect)
+- Per-agent color coding (Hauser=rose, Forman=blue, Carmen=emerald, Chen=cyan, Wills=amber, Caddick=violet)
+- Animated probability bars (framer-motion) with red→amber→green gradient + convergence pulse glow
+- Hauser dissent rendered as a yellow panel — never collapsed
+- Mock + live mode toggle in settings drawer
+- Dark mode (system / light / dark)
+- Keyboard shortcuts (space=pause, i=inject, q=question, c=correct)
+- 5 frontend tests + 70 backend tests = 75 total passing
 
 ## Running the API
 

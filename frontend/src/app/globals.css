@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+/* ── Color tokens ──────────────────────────────────────────────────────── */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --muted: 210 16% 96%;
+  --muted-foreground: 215 16% 47%;
+  --border: 214 20% 90%;
+  --input: 214 20% 90%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --primary: 222 47% 11%;
+  --primary-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 222 47% 11%;
+
+  /* Agent palette — light mode */
+  --agent-hauser: 0 84% 55%;
+  --agent-forman: 217 91% 55%;
+  --agent-carmen: 142 71% 42%;
+  --agent-chen: 188 91% 38%;
+  --agent-wills: 38 92% 50%;
+  --agent-caddick: 271 81% 56%;
+  --agent-default: 215 16% 47%;
+}
+
+.dark {
+  --background: 222 47% 8%;
+  --foreground: 210 20% 96%;
+  --muted: 217 32% 14%;
+  --muted-foreground: 215 16% 65%;
+  --border: 217 32% 18%;
+  --input: 217 32% 18%;
+  --card: 222 47% 10%;
+  --card-foreground: 210 20% 96%;
+  --primary: 210 20% 96%;
+  --primary-foreground: 222 47% 11%;
+  --destructive: 0 72% 60%;
+  --destructive-foreground: 210 20% 96%;
+  --ring: 217 32% 70%;
+
+  --agent-hauser: 0 84% 65%;
+  --agent-forman: 217 91% 65%;
+  --agent-carmen: 142 71% 52%;
+  --agent-chen: 188 91% 48%;
+  --agent-wills: 38 92% 60%;
+  --agent-caddick: 271 81% 66%;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-ring: hsl(var(--ring));
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────── */
+html, body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+}
+
+/* Tabular numerals for probabilities and timestamps */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Small caps for round dividers */
+.smallcaps {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+}
+
+/* Custom scrollbar (subtle) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Convergence pulse — applied on top differential when status=concluded */
+@keyframes convergence-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--agent-carmen) / 0.4); }
+  50%      { box-shadow: 0 0 0 6px hsl(var(--agent-carmen) / 0); }
+}
+.converged-glow {
+  animation: convergence-pulse 2.4s ease-in-out infinite;
+}
