@@ -12,7 +12,10 @@ WSEventType = Literal[
     "bayesian_update",
     "challenge_raised", "challenge_resolved",
     "caddick_routing", "convergence_check",
+    # Phase 6 HITL
     "case_paused", "case_resumed", "evidence_injected",
+    "question_asked", "correction_applied",
+    "forced_conclusion", "intervention_failed",
     "case_converged", "final_report",
     "error",
 ]

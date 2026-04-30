@@ -36,6 +36,10 @@ def build_mock_agents(fixture: dict) -> tuple[dict, CaddickAgent]:
     """Returns (specialist_registry, caddick_agent) — both mock-mode.
 
     specialist_registry: {agent_name: MockSpecialistAgent}
+
+    Phase 6: also reads `intervention_responses` from the fixture and indexes
+    per-agent so MockSpecialistAgent can pick up scripted reactions to
+    interventions (questions, corrections, evidence acknowledgments).
     """
     rounds = fixture.get("scripted_rounds", []) or []
 
@@ -51,9 +55,19 @@ def build_mock_agents(fixture: dict) -> tuple[dict, CaddickAgent]:
                 per_agent[agent_name][rn] = resp
         if "Caddick" in responses:
             caddick_scripts[rn] = responses["Caddick"]
-        # Optionally fixtures provide a top-level synthesis text
         if "caddick_synthesis" in r:
             caddick_scripts.setdefault(rn, {})["synthesis"] = r["caddick_synthesis"]
+
+    # Phase 6: per-agent intervention responses
+    int_responses_raw: dict[str, dict] = fixture.get("intervention_responses", {}) or {}
+    per_agent_int: dict[str, dict[str, dict]] = {a: {} for a in SPECIALISTS}
+    caddick_int_responses: dict[str, dict] = {}
+    for key, by_agent in int_responses_raw.items():
+        for agent_name, resp in (by_agent or {}).items():
+            if agent_name in per_agent_int:
+                per_agent_int[agent_name][key] = resp
+            elif agent_name == "Caddick":
+                caddick_int_responses[key] = resp
 
     registry = {
         name: MockSpecialistAgent(
@@ -61,9 +75,14 @@ def build_mock_agents(fixture: dict) -> tuple[dict, CaddickAgent]:
             specialty=_SPEC_TO_SPECIALTY[name],
             bias=_SPEC_TO_BIAS[name],
             scripted_rounds=per_agent[name],
+            intervention_responses=per_agent_int[name],
         )
         for name in SPECIALISTS
     }
 
-    caddick = CaddickAgent(mode="mock", mock_scripts=caddick_scripts)
+    caddick = CaddickAgent(
+        mode="mock",
+        mock_scripts=caddick_scripts,
+        mock_intervention_responses=caddick_int_responses,
+    )
     return registry, caddick

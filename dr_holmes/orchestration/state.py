@@ -46,7 +46,14 @@ class CaseState(TypedDict, total=False):
     hauser_interrupt_used: bool
 
     converged: bool
-    convergence_reason: str            # "team_agreement" | "max_rounds" | "stagnation" | "doctor_concluded"
+    convergence_reason: str
 
-    caddick_synthesis_history: Annotated[list, add]  # list[CaddickSynthesis]
+    caddick_synthesis_history: Annotated[list, add]
     final_report: Optional[dict]
+
+    # ── Phase 6: HITL ──────────────────────────────────────────────────
+    case_status: str                                    # running | paused | concluded
+    scheduled_turns: list                               # list[ScheduledTurn] — drained by routing
+    intervention_history: Annotated[list, add]          # list[Intervention.model_dump()]
+    forced_conclusion: bool
+    evidence_conflicts: Annotated[list, add]            # list[EvidenceConflict.model_dump()]

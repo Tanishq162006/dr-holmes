@@ -274,3 +274,55 @@ This makes `/eval/[runId]/case/[caseId]?replay=true` a one-click demo of any ben
 
 ### Mobile policy
 Read-only single-column layout below 1024px. Editor + control bar hidden via `hidden lg:block`. Full UX desktop-only by design.
+
+---
+
+## Phase 6 — Human-in-the-loop interrupts ✅
+
+**Goal:** Wire the frontend's control bar (pause / inject / question / correct / conclude) through to actual graph state mutations. Make the system *drivable*, not just observable.
+
+### LangGraph integration
+- `enable_hitl=True` in `build_phase3_graph()` adds a `MemorySaver` checkpointer + `interrupt_after=["bayesian_update", "caddick_synthesis"]`
+- Runner loops: `invoke()` → check pending interventions → `apply_interventions()` → `graph.update_state()` → resume via `invoke(None)` from checkpoint
+- Pause uses Redis pub/sub (or in-memory await) so paused cases consume zero CPU
+
+### Components added
+- `dr_holmes/api/interventions.py` — Redis intervention queue + audit + idempotency set + resume signal. In-memory fallback for tests.
+- `dr_holmes/orchestration/hitl.py` — pure `apply_interventions(state, [...])` reducer; `build_forced_conclusion_report()`; `detect_evidence_conflict()`
+- `dr_holmes/schemas/responses.py` — `Intervention`, `ScheduledTurn`, `EvidenceConflict`; `AgentResponse.turn_type` + `responding_to`; `FinalReport.forced_by_human` + `pre_conclusion_dissents`
+
+### Six intervention types — application rules
+1. `pause` — sets status=paused, blocks remaining queue
+2. `resume` — sets status=running, drains remaining queue
+3. `inject_evidence` — appends to evidence_log, runs conflict check, schedules Caddick(`evidence_acknowledgment`)
+4. `correct_agent` — appends correction to evidence_log, schedules target(`correction_response`), runs conflict check
+5. `question_agent` — schedules target(`question_response`)
+6. `conclude_now` — sets `forced_conclusion=True`, drops remaining queue, routes graph to dedicated forced-conclusion report builder
+
+### New WS event types
+`evidence_injected`, `question_asked`, `correction_applied`, `forced_conclusion`, `intervention_failed` — each carries `intervention_id` so the frontend can match its sent command to the result.
+
+### Forced conclusion behavior
+When `conclude_now` fires, the dedicated `build_forced_conclusion_report()` captures pre-conclusion dissents from **all specialists** whose top dx differs from team consensus (not just Hauser), into `pre_conclusion_dissents[]`. Hauser's dissent goes in the dedicated `hauser_dissent` slot.
+
+### Idempotency
+- Each intervention has a unique `intervention_id` (uuid)
+- Redis `case:{id}:applied_ids` SET tracks applied intervention_ids
+- Re-sending the same intervention is a no-op (drained from queue + skipped at apply)
+
+### Tests
+`tests/test_phase6_hitl.py` — 15 tests covering:
+- Queue enqueue/drain + idempotency
+- Each intervention type's state mutation
+- Pause-blocks-remaining ordering rule
+- Conclude-now-drops-remaining ordering rule
+- Evidence conflict detection (same name + different value)
+- Validation failure → `intervention_failed` (no state mutation)
+- Pause/resume cycle
+- Routing prefers `scheduled_turns` over normal rules
+- Forced-conclusion captures pre-conclusion dissents
+- E2E: full LangGraph run with `human_script` injecting a question intervention
+
+### What's NOT in Phase 6
+- Live LLM agents acting on `turn_type` (the prompt addendum is documented but live agents are still scaffolded for Phase 4.5)
+- Multi-worker `RedisSaver` checkpointer (deferred — `MemorySaver` is fine for single-worker)

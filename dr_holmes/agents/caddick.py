@@ -38,11 +38,13 @@ Format strictly: a single paragraph, 2-4 sentences. No bullet points.
 
 class CaddickAgent:
     def __init__(self, mode: str = "mock", llm_client=None, llm_model: str = "gpt-4o",
-                 mock_scripts: dict[int, dict] | None = None):
+                 mock_scripts: dict[int, dict] | None = None,
+                 mock_intervention_responses: dict[str, dict] | None = None):
         self.mode = mode
         self.client = llm_client
         self.model = llm_model
         self.mock_scripts = mock_scripts or {}
+        self.mock_intervention_responses = mock_intervention_responses or {}
 
     @property
     def name(self) -> str:

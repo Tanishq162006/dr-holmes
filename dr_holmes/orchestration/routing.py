@@ -75,6 +75,15 @@ def select_next_speakers(state: dict) -> tuple[list[str], str]:
     active_challenges = state.get("active_challenges", []) or []
     current_dx = state.get("current_differentials", []) or []
 
+    # 0. Phase 6: scheduled intervention turns take precedence over all rules
+    scheduled = state.get("scheduled_turns", []) or []
+    if scheduled:
+        first = scheduled[0]
+        agent = first["agent"] if isinstance(first, dict) else getattr(first, "agent", None)
+        ttype = first.get("turn_type", "normal") if isinstance(first, dict) else getattr(first, "turn_type", "normal")
+        if agent:
+            return [agent], f"scheduled_{ttype}"
+
     # 1. Hauser interrupt privilege (once per case)
     if state.get("hauser_force_speak") and not state.get("hauser_interrupt_used"):
         return ["Hauser"], "hauser_interrupt"

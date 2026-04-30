@@ -36,10 +36,18 @@ class RenderHooks:
         self.on_final          = on_final          or (lambda *_: None)
 
 
-def build_phase3_graph(agent_registry: dict, caddick_agent, hooks: RenderHooks):
+def build_phase3_graph(
+    agent_registry: dict,
+    caddick_agent,
+    hooks: RenderHooks,
+    *,
+    enable_hitl: bool = False,
+):
     """
     agent_registry: {"Hauser": SpecialistAgent, "Forman": ..., "Carmen": ..., "Chen": ..., "Wills": ...}
     caddick_agent : CaddickAgent instance (mock or live)
+    enable_hitl   : Phase 6 — adds checkpointer + interrupt_after for HITL pause/resume.
+                    When True, callers must invoke with config={"configurable":{"thread_id": case_id}}.
     """
 
     # ── patient_intake ─────────────────────────────────────────────────────
@@ -62,24 +70,59 @@ def build_phase3_graph(agent_registry: dict, caddick_agent, hooks: RenderHooks):
             "hauser_force_speak": False,
             "hauser_interrupt_used": False,
             "converged": False,
+            # Phase 6 defaults
+            "case_status": "running",
+            "scheduled_turns": [],
+            "intervention_history": [],
+            "forced_conclusion": False,
+            "evidence_conflicts": [],
         }
 
     # ── specialist_response (parallel via Send) ────────────────────────────
     def specialist_response(payload: dict) -> dict:
         agent_name = payload["agent_name"]
         case_state = payload["case_state"]
+        scheduled_turn = payload.get("scheduled_turn")  # Phase 6 HITL
         agent = agent_registry[agent_name]
+        # Phase 6: pass scheduled_turn metadata in case_state so agents see it
+        if scheduled_turn:
+            case_state = {**case_state, "_active_scheduled_turn": scheduled_turn}
         response = agent.respond(case_state)
+        # Phase 6: stamp turn_type + responding_to on the response
+        if scheduled_turn:
+            ttype = scheduled_turn.get("turn_type", "normal")
+            iid = scheduled_turn.get("intervention_id")
+            if hasattr(response, "model_copy"):
+                response = response.model_copy(update={
+                    "turn_type": ttype,
+                    "responding_to": iid,
+                })
         hooks.on_agent_response(response)
         return {"agent_responses": {agent_name: [response]}}
 
     def fan_out_speakers(state: CaseState):
+        # Phase 6: if there are scheduled (intervention) turns, consume the
+        # FIRST one and route to that single agent. Pop it from state so
+        # subsequent rounds proceed normally.
+        scheduled = state.get("scheduled_turns", []) or []
+        if scheduled:
+            first = scheduled[0]
+            agent = first["agent"] if isinstance(first, dict) else getattr(first, "agent", None)
+            if agent and agent in agent_registry:
+                state_copy = dict(state)
+                state_copy["scheduled_turns"] = scheduled[1:]
+                return [Send("specialist_response", {
+                    "agent_name": agent,
+                    "case_state": state_copy,
+                    "scheduled_turn": first,
+                })]
+
         speakers = state.get("next_speakers", []) or list(SPECIALISTS)
-        # Snapshot the case state for each parallel branch (read-only)
         return [
             Send("specialist_response", {
                 "agent_name": a,
                 "case_state": dict(state),
+                "scheduled_turn": None,
             })
             for a in speakers if a in agent_registry
         ]
@@ -134,6 +177,9 @@ def build_phase3_graph(agent_registry: dict, caddick_agent, hooks: RenderHooks):
     # propose a discriminating test next round — they do NOT terminate.
     # Only true convergence or hitting max_rounds ends the case.
     def convergence_decision(state: CaseState) -> str:
+        # Phase 6: forced human conclusion shortcuts everything
+        if state.get("forced_conclusion"):
+            return "final_report"
         converged, _ = has_converged(state)
         if converged:
             return "final_report"
@@ -149,6 +195,19 @@ def build_phase3_graph(agent_registry: dict, caddick_agent, hooks: RenderHooks):
 
     # ── final_report ───────────────────────────────────────────────────────
     def final_report_node(state: CaseState) -> dict:
+        # Phase 6: human-forced conclusion uses the dedicated builder which
+        # captures pre-conclusion dissents from all specialists, not just Hauser.
+        if state.get("forced_conclusion"):
+            from dr_holmes.orchestration.hitl import build_forced_conclusion_report
+            case_id = state.get("case_id", "unknown")
+            report = build_forced_conclusion_report(state, case_id)
+            hooks.on_final(report)
+            return {
+                "converged": True,
+                "convergence_reason": "forced_by_human",
+                "final_report": report.model_dump(),
+                "case_status": "concluded",
+            }
         case_id = state.get("case_id", "unknown")
         ddx = state.get("current_differentials", []) or []
         if ddx:
@@ -254,4 +313,10 @@ def build_phase3_graph(agent_registry: dict, caddick_agent, hooks: RenderHooks):
     builder.add_conditional_edges("increment_round", fan_out_speakers, ["specialist_response"])
     builder.add_edge("final_report", END)
 
+    if enable_hitl:
+        from langgraph.checkpoint.memory import MemorySaver
+        return builder.compile(
+            checkpointer=MemorySaver(),
+            interrupt_after=["bayesian_update", "caddick_synthesis"],
+        )
     return builder.compile()

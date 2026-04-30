@@ -111,8 +111,46 @@ async def _live_tail(ws: WebSocket, case_id: str, last_seq: int):
 
 
 async def _handle_command(case_id: str, cmd: dict) -> None:
-    """Phase 4: log incoming commands. Phase 6 wires real handlers."""
-    log.info(f"WS command for {case_id}: {cmd.get('command')} ({cmd})")
+    """Phase 6: validate, enqueue an Intervention, and signal resume if needed."""
+    from dr_holmes.api.interventions import (
+        enqueue_intervention, signal_resume, write_audit, next_intervention_sequence,
+    )
+    from dr_holmes.schemas.responses import Intervention
+
+    command = cmd.get("command", "")
+    payload = cmd.get("payload", {}) or {}
+    log.info(f"WS command for {case_id}: {command}")
+
+    if command not in {"pause", "resume", "inject_evidence",
+                       "question_agent", "correct_agent", "conclude_now", "ack"}:
+        log.warning(f"Unknown WS command: {command}")
+        return
+
+    if command == "ack":
+        return  # heartbeat, no action
+
+    try:
+        intv = Intervention(
+            case_id=case_id,
+            type=command,  # type: ignore[arg-type]
+            payload=payload,
+            sequence_number=await next_intervention_sequence(case_id),
+        )
+    except Exception as e:
+        log.warning(f"Bad WS command payload: {e}")
+        return
+
+    await enqueue_intervention(intv)
+    await write_audit(
+        case_id=case_id, sequence=intv.sequence_number,
+        event_type=f"intervention_queued:{command}",
+        payload={"intervention_id": intv.intervention_id, "payload": payload},
+    )
+
+    # Resume signal: pause/resume both unblock the runner's await_resume() —
+    # pause is a no-op there but resume actually wakes it.
+    if command == "resume":
+        await signal_resume(case_id)
 
 
 @router.websocket("/ws/cases/{case_id}")

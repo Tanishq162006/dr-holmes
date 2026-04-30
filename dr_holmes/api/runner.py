@@ -141,16 +141,103 @@ async def _run_mock_case(case_id: str, fixture_path: str, owner_id: str) -> None
         "fixture_path": fixture_path,
     }))
 
-    graph = build_phase3_graph(registry, caddick, hooks)
+    # Phase 6: enable HITL with checkpointer + interrupt_after
+    graph = build_phase3_graph(registry, caddick, hooks, enable_hitl=True)
+    config = {"configurable": {"thread_id": case_id}, "recursion_limit": 80}
 
-    # Run the graph in a thread to keep async event loop free
-    def _invoke():
-        return graph.invoke(
-            {"case_id": case_id, "patient_presentation": fixture.get("patient_presentation", {})},
-            config={"recursion_limit": 80},
-        )
+    # Initial state
+    initial_state = {
+        "case_id": case_id,
+        "patient_presentation": fixture.get("patient_presentation", {}),
+    }
 
-    result = await asyncio.to_thread(_invoke)
+    # ── HITL run loop: invoke until done, drain interventions at each pause ──
+    from dr_holmes.api.interventions import (
+        drain_pending, mark_applied, wait_for_resume as wait_resume,
+        write_audit as audit,
+    )
+    from dr_holmes.orchestration.hitl import apply_interventions
+
+    # Apply scripted human interventions (mock fixture's human_script)
+    scripted_human = fixture.get("human_script", []) or []
+    last_round_processed = 0
+
+    state_or_resume: dict | None = initial_state
+    iterations = 0
+    MAX_ITERS = 40
+
+    while iterations < MAX_ITERS:
+        iterations += 1
+
+        def _invoke(s=state_or_resume):
+            return graph.invoke(s, config=config)
+
+        result = await asyncio.to_thread(_invoke)
+        state_or_resume = None  # subsequent invokes resume from checkpoint
+
+        # If we've reached final report, we're done
+        if result.get("final_report") or result.get("converged"):
+            break
+
+        # Determine current round; queue scripted interventions whose
+        # `after_round` was just completed
+        current_round = int(result.get("round_number", 0))
+        for entry in scripted_human:
+            ar = int(entry.get("after_round", 0))
+            if ar > last_round_processed and ar <= current_round:
+                # Build Intervention object and queue via Redis (or in-memory)
+                from dr_holmes.api.interventions import (
+                    enqueue_intervention, next_intervention_sequence,
+                )
+                from dr_holmes.schemas.responses import Intervention as _Intv
+                intv_dict = entry.get("intervention", {})
+                intv = _Intv(
+                    case_id=case_id,
+                    type=intv_dict.get("type"),  # type: ignore[arg-type]
+                    payload=intv_dict.get("payload", {}),
+                    sequence_number=await next_intervention_sequence(case_id),
+                )
+                await enqueue_intervention(intv)
+                await audit(case_id=case_id, sequence=intv.sequence_number,
+                            event_type=f"intervention_queued:{intv.type}",
+                            payload={"intervention_id": intv.intervention_id,
+                                     "payload": intv.payload, "scripted": True})
+        last_round_processed = max(last_round_processed, current_round)
+
+        # Drain pending interventions
+        pending = await drain_pending(case_id)
+        if pending:
+            # Filter out any already-applied (idempotency)
+            fresh = []
+            for intv in pending:
+                if await mark_applied(case_id, intv.intervention_id):
+                    fresh.append(intv)
+            if fresh:
+                # Read current state, apply, write back via update_state
+                snapshot = graph.get_state(config).values
+                new_state, emitted = apply_interventions(snapshot, fresh)
+                graph.update_state(config, new_state)
+                # Emit each intervention event over WS
+                for ev in emitted:
+                    await _emit(case_id, translator._ev(ev["event_type"], ev["payload"]),
+                                owner_id)
+                    await audit(case_id=case_id,
+                                sequence=ev["payload"].get("intervention_id", ""),  # type: ignore[arg-type]
+                                event_type=f"intervention_applied:{ev['event_type']}",
+                                payload=ev["payload"])
+
+        # Check if we paused
+        post_state = graph.get_state(config).values
+        if post_state.get("case_status") == "paused":
+            # Wait for resume signal
+            await wait_resume(case_id, timeout=600.0)
+            # Loop continues: graph.invoke(None) resumes from checkpoint
+
+        # Forced conclusion — graph will route to final_report on next invoke
+        if post_state.get("forced_conclusion"):
+            continue
+
+    result = graph.get_state(config).values
 
     # Persist final state to Postgres
     try:

@@ -1,7 +1,20 @@
 """Phase 3 structured response schemas — what every agent returns."""
 from __future__ import annotations
-from typing import Literal, Optional
+from typing import Literal, Optional, Any
+from datetime import datetime
 from pydantic import BaseModel, Field
+import uuid
+
+
+# ── Phase 6 turn-type taxonomy ─────────────────────────────────────────────
+
+TurnType = Literal[
+    "normal",
+    "question_response",
+    "correction_response",
+    "evidence_acknowledgment",
+    "forced_conclusion_dissent",
+]
 
 
 # ── Reused / extended from Phase 2 ─────────────────────────────────────────
@@ -43,6 +56,10 @@ class AgentResponse(BaseModel):
     request_floor: bool = False
     force_speak: bool = False  # Hauser-only privilege
 
+    # Phase 6: HITL fields
+    turn_type: TurnType = "normal"
+    responding_to: Optional[str] = None     # intervention_id this turn responds to
+
 
 # ── Caddick (moderator) ────────────────────────────────────────────────────
 
@@ -72,5 +89,46 @@ class FinalReport(BaseModel):
     hauser_dissent: Optional[HauserDissent] = None
     recommended_workup: list[TestProposal] = Field(default_factory=list)
     deliberation_summary: str = ""
-    convergence_reason: str = ""    # "team_agreement" | "max_rounds" | "stagnation" | "doctor_concluded"
+    convergence_reason: str = ""    # "team_agreement" | "max_rounds" | "stagnation" | "doctor_concluded" | "forced_by_human"
     full_responses: dict[str, list[AgentResponse]] = Field(default_factory=dict)
+    # Phase 6
+    forced_by_human: bool = False
+    pre_conclusion_dissents: list[HauserDissent] = Field(default_factory=list)
+    interventions_summary: list[dict[str, Any]] = Field(default_factory=list)
+
+
+# ── Phase 6: Human-in-the-loop interventions ───────────────────────────────
+
+InterventionType = Literal[
+    "pause", "resume", "inject_evidence",
+    "question_agent", "correct_agent", "conclude_now",
+]
+
+
+class Intervention(BaseModel):
+    intervention_id: str = Field(default_factory=lambda: uuid.uuid4().hex[:12])
+    case_id: str
+    type: InterventionType
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    payload: dict[str, Any] = Field(default_factory=dict)
+    sequence_number: int = 0                 # monotonic per case
+    applied: bool = False
+    applied_at: Optional[datetime] = None
+    failure_reason: Optional[str] = None
+
+
+class ScheduledTurn(BaseModel):
+    """A turn that the routing layer must schedule next, ahead of normal rules.
+    Populated by `human_intervention` when interventions are applied."""
+    agent: str
+    turn_type: TurnType = "normal"
+    intervention_id: Optional[str] = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class EvidenceConflict(BaseModel):
+    name: str
+    prev_value: str
+    new_value: str
+    prev_ts: str
+    new_ts: str
