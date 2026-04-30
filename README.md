@@ -11,7 +11,7 @@ A House MD–style diagnostic team built as a multi-agent LLM system. Six AI age
                            ▼
    ┌───────────┬───────────┬───────────┬───────────┬───────────┐
    │  Hauser   │  Forman   │  Carmen   │   Chen    │   Wills   │
-   │ (Grok)    │ (GPT-4o)  │ (Sonnet)  │ (4o-mini) │ (Haiku)   │
+   │ (Grok-2)  │ (GPT-4o)  │ (4o-mini) │ (4o-mini) │ (4o-mini) │
    │ rare      │ common    │ autoimm.  │ surgical  │ malign.   │
    └─────┬─────┴─────┬─────┴─────┬─────┴─────┬─────┴─────┬─────┘
          └───────────┴───────────┼───────────┴───────────┘
@@ -64,7 +64,7 @@ uv pip install --system -r requirements.txt   # or: pip install -e .
 
 # 4. Set up env
 cp .env.example .env
-# fill in OPENAI_API_KEY, XAI_API_KEY, ANTHROPIC_API_KEY (optional for mock mode)
+# fill in OPENAI_API_KEY and XAI_API_KEY (optional for mock mode)
 
 # 5. Load datasets (one-time, ~5 min)
 python3 scripts/load_ddxplus.py        # Bayesian priors → SQLite (49 dx, 882 likelihoods)
@@ -123,12 +123,12 @@ websocat 'ws://localhost:8000/ws/cases/{case_id}?replay=true'
 |---|---|---|---|---|---|
 | **Hauser** | xAI | `grok-2-1212` | Lead diagnostician | rare | Contrarian, hunts zebras, blunt |
 | **Forman** | OpenAI | `gpt-4o` | Internal med / Neuro | common | Evidence-based, methodical |
-| **Carmen** | Anthropic | `claude-3-5-sonnet` | Immunology | autoimmune | Empathetic, rigorous on serology |
+| **Carmen** | OpenAI | `gpt-4o-mini` | Immunology | autoimmune | Empathetic, rigorous on serology |
 | **Chen** | OpenAI | `gpt-4o-mini` | Surgical / ICU | procedural | Action-oriented, time-critical |
-| **Wills** | Anthropic | `claude-3-5-haiku` | Oncology | malignancy | Measured, rules malignancy in/out |
+| **Wills** | OpenAI | `gpt-4o-mini` | Oncology | malignancy | Measured, rules malignancy in/out |
 | **Caddick** | OpenAI | `gpt-4o` | Moderator | n/a | Deterministic routing + synthesis |
 
-Model diversity is intentional — different training distributions → genuine reasoning diversity, not just personality theater.
+**Two providers required: OpenAI + xAI** (Grok). Cross-provider diversity comes from `Hauser` running on Grok against the OpenAI-family majority — different training distribution, different failure modes. The remaining differentiation comes from system prompts + specialty-biased tool calls, not model choice.
 
 ---
 
@@ -189,30 +189,58 @@ See `docs/` for full architecture docs per phase.
 
 ---
 
-## Benchmarking
+## Benchmarks
 
-Phase 7 ships a full eval harness for measuring the system against single-agent baselines on DDXPlus.
+> **Status:** harness shipped, full numbers pending live runs.
+> Re-run any time with `python3 -m dr_holmes.eval --tier standard --all-conditions --budget 25`.
+
+### Headline (placeholder — to be populated by `headline_v1` run)
+
+Eval against 200 stratified DDXPlus cases. Numbers below are **not yet measured** — they're the result fields the harness produces:
+
+| System | Top-1 | Top-3 | Top-5 | MRR | ECE | Cost/case |
+|---|---|---|---|---|---|---|
+| `gpt4o_solo` | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+| `grok_solo` (cross-provider) | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+| `gpt4o_rag` | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+| `gpt4o_mi_layer` | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+| **`full_team` (Dr. Holmes)** | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+
+All headline numbers reported with bootstrapped 95% CIs (1000 resamples). Full report lands at `eval_runs/headline_v1/summary.md` once first live run completes.
+
+### Run it yourself
 
 ```bash
 # Smoke test (3 cases, no LLM cost — uses full_team mock fixture)
 python3 -m dr_holmes.eval --tier smoke --conditions full_team \
   --full-team-mock-fixture fixtures/case_01_easy_mi.json --n 3
 
-# Standard eval (200 stratified DDXPlus cases × all 5 baselines, ~$40 budget)
-python3 -m dr_holmes.eval --tier standard --all-conditions --budget 40
+# Standard eval (200 stratified DDXPlus cases × all 5 baselines)
+# Budget covers ~$25 worth of OpenAI + xAI tokens; cache amortizes re-runs.
+python3 -m dr_holmes.eval --tier standard --all-conditions --budget 25
 
 # Re-render report from a completed run (zero LLM cost)
-python3 -m dr_holmes.eval --report --run-id run_<id>
+python3 -m dr_holmes.eval --report --run-id <run_id>
 ```
 
 **Five baseline conditions** for honest comparison:
 | # | Condition | What it measures |
 |---|---|---|
 | 1 | `gpt4o_solo` | Single GPT-4o call, no tools, no team |
-| 2 | `sonnet_solo` | Single Claude Sonnet call, no tools |
+| 2 | `grok_solo` | Single Grok call, no tools — cross-provider sanity check |
 | 3 | `gpt4o_rag` | GPT-4o + ChromaDB retrieval |
 | 4 | `gpt4o_mi_layer` | GPT-4o + full 9-tool MI layer (no team) — isolates "does the team add value beyond the tools?" |
 | 5 | `full_team` | Phase 3 multi-agent system |
+
+The critical comparison is **#4 vs #5**. If `gpt4o_mi_layer ≈ full_team`, the multi-agent overhead isn't paying off — and that's what the harness will tell you. **Honest reporting policy:** if the team underperforms, README will say so.
+
+### Cost projection for live runs
+
+| Tier | Cases | Est. cost (cold) | Re-run cost |
+|---|---|---|---|
+| smoke | 20 | ~$2 | <$1 |
+| standard | 200 | ~$25 | <$2 |
+| headline | 1000 | ~$140 | <$10 |
 
 **Metrics** computed for every run:
 - Top-1, Top-3, Top-5 accuracy with 1000-resample bootstrapped 95% CIs

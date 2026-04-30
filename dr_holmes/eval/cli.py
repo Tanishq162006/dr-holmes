@@ -25,7 +25,7 @@ _TIER_PRESETS = {
     "headline": {"n_cases": 1000, "max_budget_usd": 250.0},
 }
 
-_ALL_CONDITIONS = ["gpt4o_solo", "sonnet_solo", "gpt4o_rag", "gpt4o_mi_layer", "full_team"]
+_ALL_CONDITIONS = ["gpt4o_solo", "grok_solo", "gpt4o_rag", "gpt4o_mi_layer", "full_team"]
 
 
 def main():

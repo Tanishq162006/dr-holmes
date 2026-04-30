@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from dr_holmes.eval.baselines import (
     BaselineRunner, BaselineResponse,
-    GPT4oSolo, SonnetSolo, GPT4oRAG, GPT4oMILayer, FullTeamBaseline,
+    GPT4oSolo, GrokSolo, GPT4oRAG, GPT4oMILayer, FullTeamBaseline,
 )
 from dr_holmes.eval.cache import LLMResponseCache
 from dr_holmes.eval.cost import CostTracker, BudgetBreach
@@ -84,8 +84,8 @@ def _build_runner(
 ) -> BaselineRunner:
     if condition == "gpt4o_solo":
         return GPT4oSolo(cache, tracker, prompt_version=prompt_version)
-    if condition == "sonnet_solo":
-        return SonnetSolo(cache, tracker, prompt_version=prompt_version)
+    if condition == "grok_solo":
+        return GrokSolo(cache, tracker, prompt_version=prompt_version)
     if condition == "gpt4o_rag":
         # Lazy-load chroma collection
         from dr_holmes.rag.retriever import get_retriever

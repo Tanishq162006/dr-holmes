@@ -5,7 +5,7 @@ normalization makes scoring uniform across conditions.
 
 Conditions:
   1. gpt4o_solo       — single GPT-4o call, no tools
-  2. sonnet_solo      — single Claude Sonnet call, no tools
+  2. grok_solo        — single Grok call, no tools (cross-provider sanity check)
   3. gpt4o_rag        — GPT-4o + ChromaDB retrieval
   4. gpt4o_mi_layer   — GPT-4o + full 9-tool MI dispatcher (no team)
   5. full_team        — Phase 3 multi-agent system
@@ -95,7 +95,7 @@ class BaselineRunner(ABC):
     def run_case(self, case: DDXPlusCase) -> BaselineResponse: ...
 
 
-# ── 1. gpt4o_solo + sonnet_solo (single-call baselines) ────────────
+# ── 1. gpt4o_solo + grok_solo (single-call baselines) ─────────────
 
 _SOLO_SYSTEM_PROMPT = """You are a careful diagnostic AI. Given a patient case,
 return the top 5 most likely diagnoses ranked by probability.
@@ -107,47 +107,24 @@ You have no tools, no external lookups. Reason from the case facts alone.
 class _SoloBaseline(BaselineRunner):
     """Single LLM call. Subclasses set provider/model/condition_name."""
 
-    def _call_openai(self, messages: list[dict]) -> tuple[dict, int, int, float]:
+    def _call_openai(self, messages: list[dict],
+                     response_format: dict | None = None) -> tuple[dict, int, int, float]:
+        """Single LLM call via OpenAI-compatible client (works for OpenAI + xAI)."""
         from openai import OpenAI
         if self.provider == "xai":
             client = OpenAI(api_key=os.getenv("XAI_API_KEY", ""), base_url="https://api.x.ai/v1")
         else:
             client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
-        resp = client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=0.0,
-            max_tokens=600,
-            response_format={"type": "json_object"},
-        )
+        kwargs = dict(model=self.model, messages=messages,
+                      temperature=0.0, max_tokens=600)
+        if response_format:
+            kwargs["response_format"] = response_format
+        resp = client.chat.completions.create(**kwargs)
         in_tok = resp.usage.prompt_tokens
         out_tok = resp.usage.completion_tokens
         from dr_holmes.eval.cost import estimate_cost
         cost = estimate_cost(self.provider, self.model, in_tok, out_tok)
         return ({"content": resp.choices[0].message.content}, in_tok, out_tok, cost)
-
-    def _call_anthropic(self, messages: list[dict]) -> tuple[dict, int, int, float]:
-        try:
-            from anthropic import Anthropic
-        except ImportError:
-            raise RuntimeError("anthropic SDK not installed; pip install anthropic")
-        client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
-        # Claude API: split system + user
-        system = next((m["content"] for m in messages if m["role"] == "system"), "")
-        user_msgs = [m for m in messages if m["role"] != "system"]
-        resp = client.messages.create(
-            model=self.model,
-            system=system,
-            messages=user_msgs,
-            temperature=0.0,
-            max_tokens=600,
-        )
-        text = "".join(blk.text for blk in resp.content if hasattr(blk, "text"))
-        in_tok = resp.usage.input_tokens
-        out_tok = resp.usage.output_tokens
-        from dr_holmes.eval.cost import estimate_cost
-        cost = estimate_cost(self.provider, self.model, in_tok, out_tok)
-        return ({"content": text}, in_tok, out_tok, cost)
 
     def run_case(self, case: DDXPlusCase) -> BaselineResponse:
         start = time.time()
@@ -155,6 +132,10 @@ class _SoloBaseline(BaselineRunner):
             {"role": "system", "content": _SOLO_SYSTEM_PROMPT},
             {"role": "user", "content": _format_case_for_prompt(case)},
         ]
+        # Grok currently doesn't support response_format=json_object on all
+        # models; OpenAI does. We pass it conditionally so the cache key stays
+        # stable per-provider.
+        rf = {"type": "json_object"} if self.provider == "openai" else None
         try:
             cached = self.cache.get_or_call(
                 provider=self.provider,
@@ -163,9 +144,8 @@ class _SoloBaseline(BaselineRunner):
                 messages=messages,
                 temperature=0.0,
                 max_tokens=600,
-                response_format={"type": "json_object"},
-                call_fn=lambda: (self._call_openai(messages) if self.provider != "anthropic"
-                                 else self._call_anthropic(messages)),
+                response_format=rf,
+                call_fn=lambda: self._call_openai(messages, rf),
                 metadata={"case_id": case.case_id, "condition": self.condition_name},
             )
             self.tracker.add(
@@ -203,10 +183,11 @@ class GPT4oSolo(_SoloBaseline):
     model = "gpt-4o"
 
 
-class SonnetSolo(_SoloBaseline):
-    condition_name = "sonnet_solo"
-    provider = "anthropic"
-    model = "claude-3-5-sonnet-20241022"
+class GrokSolo(_SoloBaseline):
+    """Cross-provider sanity check: same prompt as gpt4o_solo, different family."""
+    condition_name = "grok_solo"
+    provider = "xai"
+    model = "grok-2-1212"
 
 
 # ── 3. gpt4o_rag — GPT-4o with ChromaDB retrieval ──────────────────
@@ -246,7 +227,7 @@ class GPT4oRAG(_SoloBaseline):
                 prompt_version=self.prompt_version,
                 messages=messages, temperature=0.0, max_tokens=600,
                 response_format={"type": "json_object"},
-                call_fn=lambda: self._call_openai(messages),
+                call_fn=lambda: self._call_openai(messages, {"type": "json_object"}),
                 metadata={"case_id": case.case_id, "condition": self.condition_name},
             )
             self.tracker.add(

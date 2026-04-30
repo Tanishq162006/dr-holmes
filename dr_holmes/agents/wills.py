@@ -1,4 +1,4 @@
-"""Dr. Wills — oncology consult (Anthropic Claude Haiku)."""
+"""Dr. Wills — oncology consult (OpenAI gpt-4o-mini)."""
 from __future__ import annotations
 from dr_holmes.agents.specialist_base import SpecialistAgent
 from dr_holmes.schemas.responses import AgentResponse
@@ -25,10 +25,10 @@ have nothing to add this round, set defers_to_team=true and confidence=0.
 
 
 class WillsAgent(SpecialistAgent):
-    """Live Anthropic Claude Haiku pending API key."""
+    """Live OpenAI gpt-4o-mini pending live-mode wiring (Phase 4.5)."""
 
-    def __init__(self, anthropic_client=None, model: str = "claude-3-5-haiku-20241022"):
-        self.client = anthropic_client
+    def __init__(self, openai_client=None, model: str = "gpt-4o-mini"):
+        self.client = openai_client
         self.model = model
 
     @property
@@ -43,7 +43,7 @@ class WillsAgent(SpecialistAgent):
     def respond(self, state: dict) -> AgentResponse:
         if self.client is None:
             raise RuntimeError(
-                "WillsAgent has no Anthropic client. "
-                "Use MockSpecialistAgent or pass anthropic_client= once keys are set."
+                "WillsAgent has no OpenAI client. "
+                "Use MockSpecialistAgent for now."
             )
-        raise NotImplementedError("Live Wills pending Anthropic integration")
+        raise NotImplementedError("Live Wills pending OpenAI integration")

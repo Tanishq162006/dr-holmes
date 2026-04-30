@@ -1,4 +1,8 @@
-"""Dr. Carmen — immunology / autoimmune specialist (Anthropic Claude Sonnet)."""
+"""Dr. Carmen — immunology / autoimmune specialist (OpenAI gpt-4o-mini).
+
+Differentiation from other GPT-4o-family agents comes from her system prompt
++ tool-call bias='autoimmune', not the model identity. Cheap to run.
+"""
 from __future__ import annotations
 from dr_holmes.agents.specialist_base import SpecialistAgent, MockSpecialistAgent
 from dr_holmes.schemas.responses import AgentResponse
@@ -26,11 +30,11 @@ your top dx has prob < 0.30.
 
 
 class CarmenAgent(SpecialistAgent):
-    """Live Anthropic Claude implementation pending API key.
-    Until then, instantiate via MockSpecialistAgent.from_fixture."""
+    """Live OpenAI implementation pending live-mode wiring (Phase 4.5).
+    Until then, instantiate via MockSpecialistAgent."""
 
-    def __init__(self, anthropic_client=None, model: str = "claude-3-5-sonnet-20241022"):
-        self.client = anthropic_client
+    def __init__(self, openai_client=None, model: str = "gpt-4o-mini"):
+        self.client = openai_client
         self.model = model
 
     @property
@@ -45,8 +49,8 @@ class CarmenAgent(SpecialistAgent):
     def respond(self, state: dict) -> AgentResponse:
         if self.client is None:
             raise RuntimeError(
-                "CarmenAgent has no Anthropic client. "
-                "Use MockSpecialistAgent for now, or pass anthropic_client= once you have a key."
+                "CarmenAgent has no OpenAI client. "
+                "Use MockSpecialistAgent for now, or pass openai_client= once live mode is wired."
             )
-        # TODO: wire Anthropic structured output when keys are available
-        raise NotImplementedError("Live Carmen pending Anthropic integration")
+        # TODO: wire OpenAI structured output when live mode lands (Phase 4.5)
+        raise NotImplementedError("Live Carmen pending OpenAI structured-output integration")

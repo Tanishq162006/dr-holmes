@@ -376,8 +376,6 @@ def run_live_session(case_id: str, max_rounds: int) -> None:
         missing.append("OPENAI_API_KEY")
     if not os.getenv("XAI_API_KEY"):
         missing.append("XAI_API_KEY")
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        missing.append("ANTHROPIC_API_KEY")
 
     if missing:
         console.print(Panel(
@@ -397,12 +395,12 @@ def run_live_session(case_id: str, max_rounds: int) -> None:
             f"Live session for case '{case_id}' — not yet implemented.\n"
             f"max_rounds={max_rounds}.\n\n"
             "Agent assignments:\n"
-            "  Hauser   = Grok (xAI)\n"
+            "  Hauser   = Grok-2 (xAI)\n"
             "  Forman   = GPT-4o (OpenAI)\n"
             "  Caddick  = GPT-4o (OpenAI)\n"
             "  Chen     = GPT-4o-mini (OpenAI)\n"
-            "  Carmen   = Claude Sonnet (Anthropic)\n"
-            "  Wills    = Claude Haiku (Anthropic)",
+            "  Carmen   = GPT-4o-mini (OpenAI)\n"
+            "  Wills    = GPT-4o-mini (OpenAI)",
             style="white",
         ),
         border_style="cyan",

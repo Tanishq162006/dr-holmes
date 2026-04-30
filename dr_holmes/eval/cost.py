@@ -11,12 +11,10 @@ from pydantic import BaseModel
 
 # (provider, model) → (input_$/M_tokens, output_$/M_tokens)
 PRICES: dict[tuple[str, str], tuple[float, float]] = {
-    ("openai",    "gpt-4o"):                       (2.50, 10.00),
-    ("openai",    "gpt-4o-mini"):                  (0.15,  0.60),
-    ("xai",       "grok-2-1212"):                  (2.00, 10.00),
-    ("xai",       "grok-beta"):                    (5.00, 15.00),
-    ("anthropic", "claude-3-5-sonnet-20241022"):   (3.00, 15.00),
-    ("anthropic", "claude-3-5-haiku-20241022"):    (1.00,  5.00),
+    ("openai", "gpt-4o"):       (2.50, 10.00),
+    ("openai", "gpt-4o-mini"):  (0.15,  0.60),
+    ("xai",    "grok-2-1212"):  (2.00, 10.00),
+    ("xai",    "grok-beta"):    (5.00, 15.00),
 }
 
 

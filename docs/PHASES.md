@@ -159,7 +159,7 @@ Even at team consensus, if Hauser's last top dx ≠ team consensus (token-set mi
 
 ### Five baseline conditions
 1. `gpt4o_solo` — single GPT-4o call, no tools, no team
-2. `sonnet_solo` — single Claude Sonnet call, no tools
+2. `grok_solo` — single Grok call, no tools (cross-provider sanity check)
 3. `gpt4o_rag` — GPT-4o + ChromaDB retrieval
 4. `gpt4o_mi_layer` — GPT-4o + 9-tool MI dispatcher (no team) ← isolates "does the team add value beyond the tools?"
 5. `full_team` — Phase 3 multi-agent system

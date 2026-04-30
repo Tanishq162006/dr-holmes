@@ -25,7 +25,6 @@ python-jose[cryptography]>=3.3.0
 
 # Phase 7: eval
 matplotlib>=3.8.0
-anthropic>=0.34.0  # only required for sonnet_solo baseline
 
 # Tests
 pytest>=7.4

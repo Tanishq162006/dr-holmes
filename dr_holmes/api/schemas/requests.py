@@ -38,7 +38,7 @@ class AgentProfile(BaseModel):
     name: str
     specialty: str
     bias: str
-    model_provider: str  # "openai", "xai", "anthropic"
+    model_provider: str  # "openai" | "xai"
     model_id: str
     description: str
 
