@@ -31,16 +31,28 @@ class Case(Base):
     __tablename__ = "cases"
     id:                   Mapped[str] = mapped_column(String(64), primary_key=True)
     owner_id:             Mapped[str] = mapped_column(String(64), default="dev", index=True)
-    status:               Mapped[str] = mapped_column(String(16), index=True)  # pending|running|paused|concluded|errored|interrupted
+    # Status:
+    #   pending | running | paused | concluded (reversible — doctor can add findings)
+    #   | finalized (terminal — doctor has locked it) | errored | interrupted
+    status:               Mapped[str] = mapped_column(String(16), index=True)
     mock_mode:            Mapped[bool] = mapped_column(Boolean, default=False)
     fixture_path:         Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     patient_presentation: Mapped[dict] = mapped_column(JSON)
+    # `final_report` = the most recent assessment (updates each round on followup)
     final_report:         Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # `assessment_history` = list of every prior FinalReport snapshot (Phase 6.6)
+    assessment_history:   Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    # `finalized_report` = immutable copy frozen when doctor locks the case
+    finalized_report:     Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # Per-case persistent evidence log so followup cycles can rebuild state
+    evidence_log:         Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     convergence_reason:   Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     rounds_taken:         Mapped[int] = mapped_column(Integer, default=0)
+    followup_count:       Mapped[int] = mapped_column(Integer, default=0)
     created_at:           Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at:           Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     concluded_at:         Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    finalized_at:         Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class AuditLog(Base):

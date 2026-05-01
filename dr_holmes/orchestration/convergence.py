@@ -11,7 +11,9 @@ from dr_holmes.orchestration.constants import (
 
 
 def _normalize_dx(name: str) -> str:
-    """Loose match: lowercase, drop parentheticals/qualifiers/punctuation."""
+    """Loose match: lowercase, drop parentheticals/qualifiers/punctuation,
+    then canonicalize known abbreviations (STEMI ↔ MI, PE, SLE, etc.)."""
+    from dr_holmes.orchestration.aggregation import _canonicalize
     s = (name or "").lower()
     s = re.sub(r"\([^)]*\)", " ", s)             # drop parenthetical clarifiers
     s = re.sub(r"\[[^\]]*\]", " ", s)
@@ -19,7 +21,8 @@ def _normalize_dx(name: str) -> str:
     s = s.replace("'s", "").replace("'", "")
     s = re.sub(r"[^a-z0-9 ]+", " ", s)
     s = re.sub(r"\b(a|an|the)\b", " ", s)
-    return re.sub(r"\s+", " ", s).strip()
+    s = re.sub(r"\s+", " ", s).strip()
+    return _canonicalize(s)
 
 
 def _dx_tokens_match(team_name: str, spec_name: str) -> bool:

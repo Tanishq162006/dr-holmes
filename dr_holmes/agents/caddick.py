@@ -91,9 +91,10 @@ class CaddickAgent:
                 f"{n_active} unresolved challenge(s). Continuing deliberation.")
 
     def _live_synthesis(self, state: dict) -> str:
-        """Live LLM synthesis. Requires OpenAI client."""
+        """Live LLM synthesis. Requires OpenAI client. Budget-guarded."""
         if self.client is None:
             return self._stub_synthesis(state)
+        from dr_holmes.safety import budget as _budget
 
         # Build a compact context for the LLM
         def _name(d):
@@ -129,15 +130,25 @@ class CaddickAgent:
             f"Each specialist's top:\n" + "\n".join(last_per_agent)
         )
 
+        case_id = state.get("case_id", "unknown")
+        # Budget-guarded synthesis call
         try:
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": SYNTHESIS_PROMPT},
-                    {"role": "user", "content": ctx},
-                ],
-                max_tokens=200,
-            )
+            with _budget.llm_call_guard(
+                case_id=case_id, agent_name="Caddick",
+                provider="openai", model=self.model,
+                expected_input_tokens=(len(SYNTHESIS_PROMPT) + len(ctx)) // 4,
+            ) as guard:
+                resp = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": SYNTHESIS_PROMPT},
+                        {"role": "user", "content": ctx},
+                    ],
+                    max_tokens=min(guard.max_tokens, 200),
+                    temperature=0.0,
+                )
+                guard.set_actual(resp.usage.prompt_tokens, resp.usage.completion_tokens)
             return resp.choices[0].message.content or ""
         except Exception as e:
+            # Includes LiveModeDisabled, SessionBudgetExceeded, CaseBudgetExceeded
             return self._stub_synthesis(state) + f" [LLM error: {e}]"

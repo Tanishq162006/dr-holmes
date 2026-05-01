@@ -148,7 +148,8 @@ export const PatientPresentationSchema = z.object({
 export type PatientPresentation = z.infer<typeof PatientPresentationSchema>;
 
 export const CaseStatusSchema = z.enum([
-  "pending", "running", "paused", "concluded", "errored", "interrupted",
+  "pending", "running", "paused", "concluded", "finalized",
+  "errored", "interrupted",
 ]);
 export type CaseStatus = z.infer<typeof CaseStatusSchema>;
 
@@ -159,14 +160,19 @@ export const CaseSummarySchema = z.object({
   mock_mode: z.boolean(),
   rounds_taken: z.number().int(),
   convergence_reason: z.string().nullable().optional(),
+  followup_count: z.number().int().optional().default(0),
   created_at: z.string(),
   concluded_at: z.string().nullable().optional(),
+  finalized_at: z.string().nullable().optional(),
 });
 export type CaseSummary = z.infer<typeof CaseSummarySchema>;
 
 export const CaseDetailSchema = CaseSummarySchema.extend({
   patient_presentation: PatientPresentationSchema,
   final_report: FinalReportSchema.nullable().optional(),
+  finalized_report: FinalReportSchema.nullable().optional(),
+  assessment_history: z.array(FinalReportSchema).optional().default([]),
+  evidence_log: z.array(z.record(z.string(), z.unknown())).optional().default([]),
 });
 export type CaseDetail = z.infer<typeof CaseDetailSchema>;
 
@@ -180,6 +186,7 @@ export const WS_EVENT_TYPES = [
   "caddick_routing", "convergence_check",
   "case_paused", "case_resumed", "evidence_injected",
   "question_asked", "correction_applied", "forced_conclusion", "intervention_failed",
+  "case_reopened",
   "case_converged", "final_report",
   "error",
 ] as const;

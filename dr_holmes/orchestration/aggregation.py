@@ -12,9 +12,88 @@ from dr_holmes.models.core import Differential as TeamDifferential
 from dr_holmes.schemas.responses import Differential as SpecDifferential
 
 
+# ── Disease-name canonicalization ─────────────────────────────────────────
+# Maps any normalized variant → canonical short form. Add entries as live
+# eval surfaces new variants. Keys are normalized (lowercase, no punct).
+# This is what fixes the "STEMI vs Acute Myocardial Infarction" fragmentation
+# we saw in the first live test.
+_CANONICAL_MAP: dict[str, str] = {
+    # MI family
+    "stemi": "stemi",
+    "st elevation myocardial infarction": "stemi",
+    "st elevation mi": "stemi",
+    "anterior stemi": "stemi",
+    "acute myocardial infarction": "stemi",
+    "acute myocardial infarction stemi": "stemi",
+    "acute mi": "stemi",
+    "myocardial infarction": "stemi",
+    "ami": "stemi",
+    "nstemi": "nstemi",
+    "non st elevation myocardial infarction": "nstemi",
+    "unstable angina": "unstable angina",
+    # PE / pulmonary
+    "pe": "pulmonary embolism",
+    "pulmonary embolism": "pulmonary embolism",
+    "pulmonary embolus": "pulmonary embolism",
+    # AAA
+    "aaa": "aortic aneurysm",
+    "abdominal aortic aneurysm": "aortic aneurysm",
+    "ruptured aaa": "ruptured aortic aneurysm",
+    # Aortic dissection
+    "aortic dissection": "aortic dissection",
+    "type a aortic dissection": "aortic dissection",
+    "type b aortic dissection": "aortic dissection",
+    # SLE / autoimmune
+    "sle": "sle",
+    "lupus": "sle",
+    "systemic lupus erythematosus": "sle",
+    "systemic lupus": "sle",
+    "drug induced lupus": "drug induced lupus",
+    "mctd": "mixed connective tissue disease",
+    "mixed connective tissue disease": "mixed connective tissue disease",
+    # Other common
+    "dka": "dka",
+    "diabetic ketoacidosis": "dka",
+    "chf": "heart failure",
+    "congestive heart failure": "heart failure",
+    "heart failure": "heart failure",
+    "copd": "copd",
+    "uti": "uti",
+    "urinary tract infection": "uti",
+    "urti": "urti",
+    "upper respiratory tract infection": "urti",
+    "tia": "tia",
+    "transient ischemic attack": "tia",
+    "cva": "stroke",
+    "stroke": "stroke",
+    "ischemic stroke": "stroke",
+    "hemorrhagic stroke": "hemorrhagic stroke",
+    # Whipple
+    "whipple disease": "whipple disease",
+    "whipples disease": "whipple disease",
+    "tropheryma whipplei": "whipple disease",
+}
+
+
+def _canonicalize(normalized: str) -> str:
+    """Map a normalized disease name to its canonical short form, if known.
+    Returns the input unchanged if no mapping exists."""
+    if not normalized:
+        return normalized
+    if normalized in _CANONICAL_MAP:
+        return _CANONICAL_MAP[normalized]
+    # Try canonical match by substring — if the normalized string contains
+    # a canonical key as a substring, use that mapping. This handles
+    # "anterior stemi proximal lad" → looks up "stemi" → "stemi".
+    for variant, canonical in _CANONICAL_MAP.items():
+        if len(variant) >= 3 and variant in normalized:
+            return canonical
+    return normalized
+
+
 def _norm(name: str) -> str:
     """Normalize disease name for matching: lowercase, drop parentheticals,
-    drop punctuation, collapse whitespace."""
+    drop punctuation, collapse whitespace, then canonicalize abbreviations."""
     s = (name or "").lower()
     # drop parenthetical / bracket clarifiers
     s = re.sub(r"\([^)]*\)", " ", s)
@@ -23,7 +102,8 @@ def _norm(name: str) -> str:
     s = re.split(r"[,:;]", s)[0]
     s = s.replace("'s", "").replace("'", "")
     s = re.sub(r"[^a-z0-9 ]+", " ", s)
-    return re.sub(r"\s+", " ", s).strip()
+    s = re.sub(r"\s+", " ", s).strip()
+    return _canonicalize(s)
 
 
 def _merge_substring_keys(buckets: dict) -> dict:

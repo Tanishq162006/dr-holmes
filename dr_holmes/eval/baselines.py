@@ -400,18 +400,29 @@ class FullTeamBaseline(BaselineRunner):
     def run_case(self, case: DDXPlusCase) -> BaselineResponse:
         from dr_holmes.orchestration.builder import build_phase3_graph, RenderHooks
         from dr_holmes.orchestration.mock_agents import build_mock_agents, load_fixture
+        from dr_holmes.safety import budget as _budget
 
         start = time.time()
-        if not self.mock_fixture:
-            return BaselineResponse(
-                condition=self.condition_name, case_id=case.case_id, top_5=[],
-                error="Live full_team eval requires all 5 LLM provider keys. "
-                      "Pass mock_fixture for testing the pipeline.",
-            )
+
+        # Capture safety-budget snapshot BEFORE the case so we can compute per-case cost
+        cost_before = _budget.session_total_usd()
+        calls_before = _budget.snapshot()["n_calls"]
 
         try:
-            fixture = load_fixture(self.mock_fixture)
-            registry, caddick = build_mock_agents(fixture)
+            if self.mock_fixture:
+                fixture = load_fixture(self.mock_fixture)
+                registry, caddick = build_mock_agents(fixture)
+            else:
+                # Live mode — uses OPENAI_API_KEY + XAI_API_KEY from env.
+                # Same path as the API runner's _run_live_case.
+                from openai import OpenAI as _OAI
+                from dr_holmes.agents.live_specialist import build_live_specialists
+                from dr_holmes.agents.caddick import CaddickAgent
+                _budget.assert_live_allowed()
+                registry = build_live_specialists()
+                caddick_client = _OAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+                caddick = CaddickAgent(mode="live", llm_client=caddick_client,
+                                       llm_model="gpt-4o")
             final_holder = []
             hooks = RenderHooks(on_final=final_holder.append)
             graph = build_phase3_graph(registry, caddick, hooks)
@@ -451,12 +462,26 @@ class FullTeamBaseline(BaselineRunner):
                 top_5 = [Differential(diagnosis=n, probability=p) for n, p in ranked]
                 confidence = top_5[0].probability if top_5 else conf
 
+            # Capture actual spend (live mode hits the in-process safety tracker
+            # via call_live_specialist; mock mode is always $0)
+            cost_delta = _budget.session_total_usd() - cost_before
+            calls_delta = _budget.snapshot()["n_calls"] - calls_before
+            # Also push to the eval's CostTracker for headline aggregation
+            if cost_delta > 0 and self.tracker is not None:
+                # Synthetic record: live agents already charged the safety budget,
+                # but the eval's CostTracker needs an entry so per-condition totals
+                # reflect reality.
+                self.tracker._total += cost_delta  # noqa: SLF001
+                self.tracker._n_calls += calls_delta
+                self.tracker._by_case[case.case_id] += cost_delta
+                self.tracker._by_condition[self.condition_name] += cost_delta
+
             return BaselineResponse(
                 condition=self.condition_name, case_id=case.case_id,
                 top_5=top_5, confidence=confidence,
-                n_llm_calls=0,        # mock = 0
+                n_llm_calls=calls_delta,
                 n_tool_calls=0,
-                cost_usd=0.0,
+                cost_usd=cost_delta,
                 wall_clock_seconds=time.time() - start,
             )
         except Exception as e:

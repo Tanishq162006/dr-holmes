@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime
 from typing import Optional
 
@@ -272,6 +273,202 @@ async def _run_mock_case(case_id: str, fixture_path: str, owner_id: str) -> None
         log.warning(f"agent_responses persist failed for {case_id}: {e}")
 
 
+async def _run_live_case(case_id: str, owner_id: str) -> None:
+    """Execute a LIVE case using real OpenAI + xAI agents.
+
+    Budget-guarded: every LLM call goes through dr_holmes.safety.budget.
+    Refuses to run if DR_HOLMES_ALLOW_LIVE != true.
+    """
+    from dr_holmes.safety import budget as _budget
+    from dr_holmes.agents.live_specialist import build_live_specialists
+    from dr_holmes.agents.caddick import CaddickAgent
+
+    # Hard fail-safe before doing anything
+    _budget.assert_live_allowed()
+
+    sm = get_sessionmaker()
+    async with sm() as session:
+        case_row = (await session.execute(select(Case).where(Case.id == case_id))).scalar_one_or_none()
+    if not case_row:
+        raise RuntimeError(f"Case {case_id} not in DB")
+    patient = case_row.patient_presentation
+
+    translator = EventTranslator(case_id)
+    loop = asyncio.get_event_loop()
+
+    def run_coro_sync(coro):
+        asyncio.run_coroutine_threadsafe(coro, loop)
+
+    async def emit_dict(d: dict):
+        await _emit(case_id, d, owner_id)
+
+    def on_round_start(rn: int):
+        run_coro_sync(emit_dict(translator._ev("round_started", {
+            "round_number": rn, "planned_speakers": [],
+        })))
+
+    def on_agent_response(resp):
+        rd = resp.model_dump() if hasattr(resp, "model_dump") else dict(resp)
+        run_coro_sync(emit_dict(translator._ev("agent_response", {
+            "agent_name": rd.get("agent_name"), "response": rd,
+        })))
+
+    def on_caddick(synth_dict: dict):
+        run_coro_sync(emit_dict(translator._ev("caddick_routing", {
+            "next_speakers": synth_dict.get("next_speakers", []),
+            "routing_reason": synth_dict.get("routing_reason", ""),
+            "synthesis_text": synth_dict.get("synthesis", ""),
+        })))
+
+    def on_team_dx(team_dx_list):
+        if not team_dx_list:
+            return
+        top = team_dx_list[0]
+        disease = top.disease if hasattr(top, "disease") else top.get("disease", "")
+        prob = float(top.probability if hasattr(top, "probability") else top.get("probability", 0.0))
+        prev = translator._last_top_prob
+        run_coro_sync(emit_dict(translator._ev("bayesian_update", {
+            "top_dx": disease, "top_prob": prob,
+            "deltas": [{"disease": disease, "prev": prev, "now": prob,
+                        "change": (prob - prev) if prev is not None else 0.0}],
+        })))
+        translator._last_top_prob = prob
+        translator._last_top_dx = disease
+
+    def on_final(report):
+        rd = report.model_dump() if hasattr(report, "model_dump") else dict(report)
+        run_coro_sync(emit_dict(translator._ev("case_converged", {
+            "consensus_dx": rd.get("consensus_dx", ""),
+            "confidence": rd.get("confidence", 0.0),
+            "convergence_reason": rd.get("convergence_reason", ""),
+            "rounds_taken": rd.get("rounds_taken", 0),
+        })))
+        run_coro_sync(emit_dict(translator._ev("final_report", {"report": rd})))
+
+    hooks = RenderHooks(
+        on_round_start=on_round_start,
+        on_agent_response=on_agent_response,
+        on_caddick=on_caddick,
+        on_team_dx=on_team_dx,
+        on_final=on_final,
+    )
+
+    await emit_dict(translator._ev("case_started", {
+        "patient_presentation": patient,
+        "agents": ["Hauser", "Forman", "Carmen", "Chen", "Wills", "Caddick"],
+        "mock_mode": False,
+        "live_mode": True,
+        "session_budget_usd": _budget.session_budget_usd(),
+        "per_case_budget_usd": _budget.per_case_budget_usd(),
+    }))
+
+    # Build live agents — uses OPENAI_API_KEY and XAI_API_KEY from env
+    registry = build_live_specialists()
+    from openai import OpenAI as _OAI
+    caddick_client = _OAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+    caddick = CaddickAgent(mode="live", llm_client=caddick_client, llm_model="gpt-4o")
+
+    graph = build_phase3_graph(registry, caddick, hooks, enable_hitl=True)
+    config = {"configurable": {"thread_id": case_id}, "recursion_limit": 80}
+    initial_state = {"case_id": case_id, "patient_presentation": patient}
+
+    from dr_holmes.api.interventions import (
+        drain_pending, mark_applied, wait_for_resume as wait_resume,
+        write_audit as audit,
+    )
+    from dr_holmes.orchestration.hitl import apply_interventions
+
+    state_or_resume: dict | None = initial_state
+    iterations = 0
+    MAX_ITERS = 40
+    try:
+        while iterations < MAX_ITERS:
+            iterations += 1
+
+            def _invoke(s=state_or_resume):
+                return graph.invoke(s, config=config)
+
+            result = await asyncio.to_thread(_invoke)
+            state_or_resume = None
+
+            if result.get("final_report") or result.get("converged"):
+                break
+
+            pending = await drain_pending(case_id)
+            if pending:
+                fresh = []
+                for intv in pending:
+                    if await mark_applied(case_id, intv.intervention_id):
+                        fresh.append(intv)
+                if fresh:
+                    snapshot = graph.get_state(config).values
+                    new_state, emitted = apply_interventions(snapshot, fresh)
+                    graph.update_state(config, new_state)
+                    for ev in emitted:
+                        await _emit(case_id, translator._ev(ev["event_type"], ev["payload"]),
+                                    owner_id)
+
+            post_state = graph.get_state(config).values
+            if post_state.get("case_status") == "paused":
+                await wait_resume(case_id, timeout=600.0)
+
+    except _budget.LiveModeDisabled as e:
+        await _emit(case_id, translator._ev("error", {
+            "error_type": "live_mode_disabled", "message": str(e),
+            "recoverable": False,
+        }), owner_id)
+        raise
+    except _budget.SessionBudgetExceeded as e:
+        await _emit(case_id, translator._ev("error", {
+            "error_type": "session_budget_exceeded", "message": str(e),
+            "recoverable": False,
+            "session_total_usd": _budget.session_total_usd(),
+        }), owner_id)
+        raise
+    except _budget.CaseBudgetExceeded as e:
+        await _emit(case_id, translator._ev("error", {
+            "error_type": "case_budget_exceeded", "message": str(e),
+            "recoverable": False,
+            "case_total_usd": _budget.case_total_usd(case_id),
+        }), owner_id)
+        raise
+    except Exception as e:
+        # Catch-all so a single agent's bad output doesn't deadlock the loop.
+        # Common causes: schema validation failure, LLM timeout, malformed JSON.
+        log.exception(f"live case {case_id} crashed: {e}")
+        await _emit(case_id, translator._ev("error", {
+            "error_type": type(e).__name__,
+            "message": str(e)[:400],
+            "recoverable": False,
+        }), owner_id)
+        # Mark errored in DB so the UI sees it
+        try:
+            async with sm() as session:
+                row = (await session.execute(select(Case).where(Case.id == case_id))).scalar_one_or_none()
+                if row:
+                    row.status = "errored"
+                    row.convergence_reason = f"crash:{type(e).__name__}"
+                    row.concluded_at = datetime.utcnow()
+                    await session.commit()
+        except Exception as e2:
+            log.warning(f"failed to mark errored: {e2}")
+        raise
+
+    final_state = graph.get_state(config).values
+    try:
+        async with sm() as session:
+            row = (await session.execute(select(Case).where(Case.id == case_id))).scalar_one_or_none()
+            if row:
+                row.status = "concluded"
+                row.final_report = final_state.get("final_report")
+                row.convergence_reason = final_state.get("convergence_reason")
+                row.rounds_taken = final_state.get("round_number", 0)
+                row.concluded_at = datetime.utcnow()
+                await session.commit()
+    except Exception as e:
+        log.warning(f"final state persist failed for {case_id}: {e}")
+
+
 async def run_case(case_id: str, mock_mode: bool, fixture_path: Optional[str],
                    owner_id: str = "dev") -> None:
     """Top-level case runner. Acquires lock, runs to completion, releases."""
@@ -286,18 +483,7 @@ async def run_case(case_id: str, mock_mode: bool, fixture_path: Optional[str],
                 if mock_mode and fixture_path:
                     await _run_mock_case(case_id, fixture_path, owner_id)
                 else:
-                    # Live mode requires LLM keys — Phase 4.5+
-                    err = {
-                        "protocol_version": "v1", "sequence": -1, "case_id": case_id,
-                        "event_type": "error",
-                        "timestamp": datetime.utcnow().isoformat() + "Z",
-                        "payload": {
-                            "error_type": "live_mode_unavailable",
-                            "message": "Live mode pending LLM provider integration. Use mock_mode=true.",
-                            "recoverable": False,
-                        },
-                    }
-                    await _emit(case_id, err, owner_id)
+                    await _run_live_case(case_id, owner_id)
                 await set_status(case_id, "concluded", owner_id)
             except Exception as e:
                 log.exception(f"case {case_id} failed: {e}")
@@ -319,5 +505,184 @@ def schedule_case(case_id: str, mock_mode: bool, fixture_path: Optional[str],
                   owner_id: str = "dev") -> asyncio.Task:
     """Fire-and-forget case start. Returns the task for testing/cancel."""
     task = asyncio.create_task(run_case(case_id, mock_mode, fixture_path, owner_id))
+    _active_tasks[case_id] = task
+    return task
+
+
+# ── Phase 6.6: Followup runner ──────────────────────────────────────────────
+
+async def _run_followup(
+    case_id: str, new_evidence: list[dict], question: str | None,
+    target_agent: str | None, owner_id: str, is_mock: bool, fixture_path: str | None,
+) -> None:
+    """Resume a previously-concluded case with new findings.
+
+    Reconstructs minimal state from the DB (patient + accumulated evidence_log
+    + final_report from prior cycle), then runs a new graph cycle with the
+    findings scheduled as the first turn (Caddick acknowledges, then routes).
+
+    Produces a new final_report; status flips back to 'concluded' (still
+    reversible until the doctor calls /finalize).
+    """
+    sm = get_sessionmaker()
+    async with sm() as session:
+        case = (await session.execute(select(Case).where(Case.id == case_id))).scalar_one_or_none()
+    if not case:
+        log.error(f"followup: case {case_id} not in DB")
+        return
+
+    translator = EventTranslator(case_id)
+    loop = asyncio.get_event_loop()
+
+    def run_coro_sync(coro):
+        asyncio.run_coroutine_threadsafe(coro, loop)
+
+    async def emit_dict(d: dict):
+        await _emit(case_id, d, owner_id)
+
+    # Emit reopened event
+    await emit_dict(translator._ev("case_reopened", {
+        "followup_count": case.followup_count,
+        "new_evidence": new_evidence,
+        "question": question,
+    }))
+
+    # Build hooks
+    def on_round_start(rn: int):
+        run_coro_sync(emit_dict(translator._ev("round_started", {
+            "round_number": rn, "planned_speakers": [],
+        })))
+
+    def on_agent_response(resp):
+        rd = resp.model_dump() if hasattr(resp, "model_dump") else dict(resp)
+        run_coro_sync(emit_dict(translator._ev("agent_response", {
+            "agent_name": rd.get("agent_name"), "response": rd,
+        })))
+
+    def on_caddick(synth_dict: dict):
+        run_coro_sync(emit_dict(translator._ev("caddick_routing", {
+            "next_speakers": synth_dict.get("next_speakers", []),
+            "routing_reason": synth_dict.get("routing_reason", ""),
+            "synthesis_text": synth_dict.get("synthesis", ""),
+        })))
+
+    def on_team_dx(team_dx_list):
+        if not team_dx_list:
+            return
+        top = team_dx_list[0]
+        disease = top.disease if hasattr(top, "disease") else top.get("disease", "")
+        prob = float(top.probability if hasattr(top, "probability") else top.get("probability", 0.0))
+        run_coro_sync(emit_dict(translator._ev("bayesian_update", {
+            "top_dx": disease, "top_prob": prob,
+            "deltas": [{"disease": disease, "prev": None, "now": prob, "change": 0.0}],
+        })))
+
+    def on_final(report):
+        rd = report.model_dump() if hasattr(report, "model_dump") else dict(report)
+        run_coro_sync(emit_dict(translator._ev("case_converged", {
+            "consensus_dx": rd.get("consensus_dx", ""),
+            "confidence": rd.get("confidence", 0.0),
+            "convergence_reason": rd.get("convergence_reason", ""),
+            "rounds_taken": rd.get("rounds_taken", 0),
+            "is_followup": True,
+        })))
+        run_coro_sync(emit_dict(translator._ev("final_report", {"report": rd})))
+
+    hooks = RenderHooks(
+        on_round_start=on_round_start, on_agent_response=on_agent_response,
+        on_caddick=on_caddick, on_team_dx=on_team_dx, on_final=on_final,
+    )
+
+    # Build agents (mock or live)
+    if is_mock and fixture_path:
+        from dr_holmes.orchestration.mock_agents import build_mock_agents, load_fixture
+        fixture = load_fixture(fixture_path)
+        registry, caddick = build_mock_agents(fixture)
+    else:
+        from dr_holmes.safety import budget as _budget
+        _budget.assert_live_allowed()
+        from dr_holmes.agents.live_specialist import build_live_specialists
+        from dr_holmes.agents.caddick import CaddickAgent
+        from openai import OpenAI as _OAI
+        registry = build_live_specialists()
+        caddick_client = _OAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+        caddick = CaddickAgent(mode="live", llm_client=caddick_client, llm_model="gpt-4o")
+
+    graph = build_phase3_graph(registry, caddick, hooks, enable_hitl=False)
+
+    # Reconstruct state for the new cycle
+    starting_round = (case.rounds_taken or 0) + 1
+    accumulated_evidence = list(case.evidence_log or [])
+    initial_state = {
+        "case_id": case_id,
+        "patient_presentation": case.patient_presentation,
+        "evidence_log": accumulated_evidence,
+        "round_number": starting_round,
+        "next_speakers": ["Caddick"],
+        "scheduled_turns": [{
+            "agent": "Caddick",
+            "turn_type": "evidence_acknowledgment",
+            "intervention_id": None,
+            "payload": {
+                "evidence_name": ", ".join(e.get("name", "") for e in new_evidence),
+                "evidence_value": "; ".join(f"{e.get('name','')}={e.get('value','')}"
+                                            for e in new_evidence),
+                "question": question,
+                "target_agent": target_agent,
+            },
+        }],
+        "case_status": "running",
+        "agent_responses": {},
+        "current_differentials": [],
+        "active_challenges": [],
+        "intervention_history": [],
+        "evidence_conflicts": [],
+        "rounds": [],
+    }
+
+    try:
+        result = await asyncio.to_thread(
+            lambda: graph.invoke(initial_state, config={"recursion_limit": 80})
+        )
+
+        # Save the updated final_report
+        async with sm() as session:
+            row = (await session.execute(select(Case).where(Case.id == case_id))).scalar_one_or_none()
+            if row:
+                new_report = result.get("final_report")
+                row.final_report = new_report
+                row.status = "concluded"
+                row.rounds_taken = result.get("round_number", row.rounds_taken)
+                row.convergence_reason = result.get("convergence_reason")
+                row.concluded_at = datetime.utcnow()
+                # Add the new evidence to the persisted log
+                merged_log = list(row.evidence_log or [])
+                row.evidence_log = merged_log
+                await session.commit()
+        await set_status(case_id, "concluded", owner_id)
+
+    except Exception as e:
+        log.exception(f"followup for {case_id} failed: {e}")
+        await emit_dict(translator._ev("error", {
+            "error_type": type(e).__name__, "message": str(e)[:400],
+            "recoverable": False, "phase": "followup",
+        }))
+        async with sm() as session:
+            row = (await session.execute(select(Case).where(Case.id == case_id))).scalar_one_or_none()
+            if row:
+                row.status = "errored"
+                row.convergence_reason = f"followup_crash:{type(e).__name__}"
+                await session.commit()
+
+
+def schedule_followup(case_id: str, new_evidence: list[dict], question: str | None,
+                      target_agent: str | None, owner_id: str,
+                      is_mock: bool, fixture_path: str | None) -> asyncio.Task:
+    """Fire-and-forget followup. Returns the task for testing."""
+    task = asyncio.create_task(_run_followup(
+        case_id=case_id, new_evidence=new_evidence,
+        question=question, target_agent=target_agent,
+        owner_id=owner_id, is_mock=is_mock, fixture_path=fixture_path,
+    ))
     _active_tasks[case_id] = task
     return task

@@ -6,6 +6,7 @@ import { useCaseStore } from "@/lib/stores/caseStore";
 import { formatProb, probColor, probBgColor, cn } from "@/lib/utils";
 import { useSettingsStore } from "@/lib/stores/settingsStore";
 import { ProbabilityBar } from "@/components/differentials/ProbabilityBar";
+import { AddFindingsPanel } from "@/components/case-view/AddFindingsPanel";
 
 const interventionIcon: Record<string, string> = {
   inject_evidence: "📋",
@@ -40,6 +41,8 @@ export function DifferentialsPane() {
   const challenges = useCaseStore((s) => s.activeChallenges);
   const finalReport = useCaseStore((s) => s.finalReport);
   const status = useCaseStore((s) => s.status);
+  const caseId = useCaseStore((s) => s.caseId);
+  const isMockMode = useSettingsStore((s) => s.llmMode) === "mock";
   const interventionHistory = useCaseStore((s) => s.interventionHistory);
   const threshold = useSettingsStore((s) => s.convergenceThreshold);
   const [historyOpen, setHistoryOpen] = useState(true);
@@ -226,6 +229,9 @@ export function DifferentialsPane() {
               </ul>
             </div>
           )}
+
+          {/* Phase 6.6: Add findings + finalize buttons (only when concluded, reversible) */}
+          <AddFindingsPanel caseId={caseId ?? ""} isLive={!isMockMode} />
         </section>
       )}
     </aside>

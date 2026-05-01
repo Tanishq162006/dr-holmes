@@ -16,6 +16,8 @@ WSEventType = Literal[
     "case_paused", "case_resumed", "evidence_injected",
     "question_asked", "correction_applied",
     "forced_conclusion", "intervention_failed",
+    # Phase 6.6 followup-on-concluded
+    "case_reopened",
     "case_converged", "final_report",
     "error",
 ]

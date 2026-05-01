@@ -44,9 +44,15 @@ export async function createCase(req: {
   fixture_path?: string | null;
   max_rounds?: number;
 }): Promise<CaseSummary> {
+  // Phase 6.5 backend requires X-DrHolmes-Live-Confirm: yes for live cases.
+  // The user explicitly chose live mode in the UI form, so we send it.
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (!req.mock_mode) {
+    headers["X-DrHolmes-Live-Confirm"] = "yes";
+  }
   const res = await fetch(`${base()}/api/cases`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(req),
   });
   return jsonOrThrow(res, CaseSummarySchema);
@@ -77,6 +83,48 @@ export async function resumeCase(caseId: string): Promise<void> {
 }
 export async function concludeCase(caseId: string): Promise<void> {
   await fetch(`${base()}/api/cases/${caseId}/conclude`, { method: "POST" });
+}
+
+export async function finalizeCase(caseId: string): Promise<void> {
+  const res = await fetch(`${base()}/api/cases/${caseId}/finalize`, { method: "POST" });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Finalize failed: ${res.status} ${text.slice(0, 200)}`);
+  }
+}
+
+export type FollowupFinding = {
+  type: "lab" | "imaging" | "symptom" | "physical_exam" | "test_result" | "treatment_response" | "history";
+  name: string;
+  value: string;
+  is_present?: boolean;
+};
+
+export async function submitFollowup(
+  caseId: string,
+  findings: FollowupFinding[],
+  question?: string,
+  targetAgent?: string,
+  isLive: boolean = false,
+): Promise<{ status: string; followup_count: number }> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (isLive) {
+    headers["X-DrHolmes-Live-Confirm"] = "yes";
+  }
+  const res = await fetch(`${base()}/api/cases/${caseId}/followup`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      new_evidence: findings.map(f => ({ ...f, is_present: f.is_present ?? true })),
+      question,
+      target_agent: targetAgent,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Followup failed: ${res.status} ${text.slice(0, 300)}`);
+  }
+  return res.json();
 }
 
 export async function injectEvidence(caseId: string, evidence: {

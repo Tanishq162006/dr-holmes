@@ -11,7 +11,7 @@ from prometheus_client import (
 )
 
 from dr_holmes.api.lifespan import lifespan
-from dr_holmes.api.routes import cases, agents, intel, ws, eval_runs
+from dr_holmes.api.routes import cases, agents, intel, ws, eval_runs, safety
 from dr_holmes.api.schemas.requests import HealthResponse
 
 
@@ -78,6 +78,7 @@ def create_app() -> FastAPI:
     app.include_router(agents.router)
     app.include_router(intel.router)
     app.include_router(eval_runs.router)
+    app.include_router(safety.router)
     app.include_router(ws.router)
 
     # ── Health endpoints ───────────────────────────────────────────────

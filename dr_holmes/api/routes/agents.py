@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/agents", tags=["agents"])
 _AGENTS: dict[str, AgentProfile] = {
     "Hauser":  AgentProfile(name="Hauser",  specialty="Lead diagnostician",
                             bias="rare",       model_provider="xai",
-                            model_id="grok-2-1212",
+                            model_id="grok-4-fast-non-reasoning",
                             description="Contrarian, blunt, hunts zebras."),
     "Forman":  AgentProfile(name="Forman",  specialty="Internal med / Neuro",
                             bias="common",     model_provider="openai",
