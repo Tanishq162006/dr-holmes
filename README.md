@@ -4,6 +4,8 @@
 
 A House MD–style diagnostic team built as a multi-agent LLM system. Seven AI agents with distinct personalities, specialties, and model providers deliberate over patient cases in real time. A moderator (Dr. Caddick) routes the conversation deterministically. The system grounds reasoning in a real medical knowledge graph, a Bayesian engine over DDXPlus, and vector-retrieved case literature.
 
+> **Naming note:** *Dr. Holmes* is the app — a Sherlock Holmes nod to the detective-style "team solves the mystery" framing. The lead diagnostician agent inside the team, *Dr. Hauser*, is the obvious House MD reference (arrogant, contrarian, zebra-hunter).
+
 ```
                               ┌────────────────┐
                               │ Patient case   │
