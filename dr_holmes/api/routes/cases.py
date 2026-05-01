@@ -67,6 +67,7 @@ async def create_case(
             mock_mode=req.mock_mode,
             fixture_path=req.fixture_path,
             patient_presentation=req.patient_presentation,
+            include_park=req.include_park,
         )
         session.add(case)
         await session.commit()
@@ -76,7 +77,7 @@ async def create_case(
 
     return CaseSummary(
         id=case_id, owner_id=user.owner_id, status="pending",
-        mock_mode=req.mock_mode, rounds_taken=0,
+        mock_mode=req.mock_mode, include_park=req.include_park, rounds_taken=0,
         created_at=datetime.utcnow().isoformat(),
     )
 
@@ -98,7 +99,9 @@ async def list_cases(
     return [
         CaseSummary(
             id=c.id, owner_id=c.owner_id, status=c.status,
-            mock_mode=c.mock_mode, rounds_taken=c.rounds_taken,
+            mock_mode=c.mock_mode,
+            include_park=getattr(c, "include_park", False),
+            rounds_taken=c.rounds_taken,
             convergence_reason=c.convergence_reason,
             followup_count=getattr(c, "followup_count", 0) or 0,
             created_at=c.created_at.isoformat() if c.created_at else "",
@@ -120,7 +123,9 @@ async def get_case(case_id: str, user: User = Depends(get_current_user)):
         raise HTTPException(403, "Not your case")
     return CaseDetail(
         id=case.id, owner_id=case.owner_id, status=case.status,
-        mock_mode=case.mock_mode, rounds_taken=case.rounds_taken,
+        mock_mode=case.mock_mode,
+        include_park=getattr(case, "include_park", False),
+        rounds_taken=case.rounds_taken,
         convergence_reason=case.convergence_reason,
         followup_count=getattr(case, "followup_count", 0) or 0,
         created_at=case.created_at.isoformat() if case.created_at else "",

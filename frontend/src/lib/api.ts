@@ -43,6 +43,7 @@ export async function createCase(req: {
   mock_mode: boolean;
   fixture_path?: string | null;
   max_rounds?: number;
+  include_park?: boolean;
 }): Promise<CaseSummary> {
   // Phase 6.5 backend requires X-DrHolmes-Live-Confirm: yes for live cases.
   // The user explicitly chose live mode in the UI form, so we send it.

@@ -393,9 +393,10 @@ class FullTeamBaseline(BaselineRunner):
     condition_name = "full_team"
 
     def __init__(self, cache, tracker, *, mock_fixture: Optional[str] = None,
-                 prompt_version="v1"):
+                 prompt_version="v1", include_park: bool = False):
         super().__init__(cache, tracker, prompt_version)
         self.mock_fixture = mock_fixture
+        self.include_park = include_park
 
     def run_case(self, case: DDXPlusCase) -> BaselineResponse:
         from dr_holmes.orchestration.builder import build_phase3_graph, RenderHooks
@@ -423,6 +424,8 @@ class FullTeamBaseline(BaselineRunner):
                 caddick_client = _OAI(api_key=os.getenv("OPENAI_API_KEY", ""))
                 caddick = CaddickAgent(mode="live", llm_client=caddick_client,
                                        llm_model="gpt-4o")
+            if not self.include_park:
+                registry.pop("Park", None)
             final_holder = []
             hooks = RenderHooks(on_final=final_holder.append)
             graph = build_phase3_graph(registry, caddick, hooks)

@@ -37,6 +37,10 @@ class Case(Base):
     status:               Mapped[str] = mapped_column(String(16), index=True)
     mock_mode:            Mapped[bool] = mapped_column(Boolean, default=False)
     fixture_path:         Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Per-case Park toggle (Phase 6.8). Default False — n=20 ablation showed
+    # baseline (no Park) beats with-Park on Top-1 and ECE; Park is opt-in
+    # for clearly-common presentations. See docs/EVAL_SUMMARY.md.
+    include_park:         Mapped[bool] = mapped_column(Boolean, default=False)
     patient_presentation: Mapped[dict] = mapped_column(JSON)
     # `final_report` = the most recent assessment (updates each round on followup)
     final_report:         Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)

@@ -158,6 +158,7 @@ export const CaseSummarySchema = z.object({
   owner_id: z.string(),
   status: CaseStatusSchema,
   mock_mode: z.boolean(),
+  include_park: z.boolean().optional().default(false),
   rounds_taken: z.number().int(),
   convergence_reason: z.string().nullable().optional(),
   followup_count: z.number().int().optional().default(0),

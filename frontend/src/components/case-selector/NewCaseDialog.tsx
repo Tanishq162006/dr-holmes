@@ -1,10 +1,11 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import * as Popover from "@radix-ui/react-popover";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCase } from "@/lib/api";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Info, AlertTriangle } from "lucide-react";
 
 const DEMO_FIXTURES = [
   { value: "", label: "(none — live deliberation)" },
@@ -21,6 +22,7 @@ export function NewCaseDialog({ open, onClose }: { open: boolean; onClose: () =>
   const [sex, setSex] = useState<"M" | "F" | "other">("other");
   const [mock, setMock] = useState(true);
   const [fixture, setFixture] = useState("fixtures/case_01_easy_mi.json");
+  const [includePark, setIncludePark] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -41,6 +43,7 @@ export function NewCaseDialog({ open, onClose }: { open: boolean; onClose: () =>
         },
         mock_mode: mock,
         fixture_path: mock ? fixture : null,
+        include_park: includePark,
       });
       onClose();
       router.push(`/case/${created.id}`);
@@ -123,6 +126,89 @@ export function NewCaseDialog({ open, onClose }: { open: boolean; onClose: () =>
                 <p className="text-[11px] text-amber-600 dark:text-amber-400">
                   Live mode requires OPENAI_API_KEY + XAI_API_KEY in backend.
                 </p>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-[hsl(var(--border))] p-3 space-y-2">
+              <label className="flex items-center justify-between gap-2 text-xs">
+                <span className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={includePark}
+                    onChange={(e) => setIncludePark(e.target.checked)}
+                  />
+                  <span className="font-medium">Include Dr. Park</span>
+                  <span className="text-[10px] text-[hsl(var(--muted-foreground))]">
+                    primary care · anti-zebra
+                  </span>
+                </span>
+                <Popover.Root>
+                  <Popover.Trigger asChild>
+                    <button
+                      type="button"
+                      className="p-1 rounded hover:bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]"
+                      aria-label="What does Dr. Park do?"
+                    >
+                      <Info size={14} />
+                    </button>
+                  </Popover.Trigger>
+                  <Popover.Portal>
+                    <Popover.Content
+                      side="top"
+                      align="end"
+                      sideOffset={6}
+                      className="z-[60] w-[320px] rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-3 shadow-2xl text-[11px] leading-snug space-y-2"
+                    >
+                      <p className="font-semibold text-sm">Dr. Chi Park (primary care)</p>
+                      <p>
+                        Primary care attending. Anti-zebra voice — &ldquo;common things
+                        are common.&rdquo; Counter-balances Dr. Hauser&rsquo;s preference for rare
+                        diagnoses.
+                      </p>
+                      <div className="border-t border-[hsl(var(--border))] pt-2 space-y-1">
+                        <p>
+                          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                            Disabled (default):
+                          </span>{" "}
+                          6-agent team. Best Top-1 in our eval. Hauser can hunt
+                          zebras unopposed.
+                        </p>
+                        <p>
+                          <span className="font-medium text-amber-600 dark:text-amber-400">
+                            Enabled:
+                          </span>{" "}
+                          7-agent team. Adds anti-zebra voice but reduces
+                          rare-disease sensitivity. ~5s extra/round, +25% cost.
+                        </p>
+                      </div>
+                      <div className="border-t border-[hsl(var(--border))] pt-2 text-[hsl(var(--muted-foreground))]">
+                        <p className="font-medium text-foreground">
+                          n=20 ablation (DDXPlus, seed 42):
+                        </p>
+                        <p>
+                          Without Park: <strong>Top-1 35%</strong>, ECE 0.17.
+                          With Park: Top-1 30%, ECE 0.26. CIs overlap → not
+                          statistically significant. Larger eval pending.
+                        </p>
+                      </div>
+                      <Popover.Arrow className="fill-[hsl(var(--card))]" />
+                    </Popover.Content>
+                  </Popover.Portal>
+                </Popover.Root>
+              </label>
+
+              {includePark && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-[11px] text-amber-700 dark:text-amber-300">
+                  <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                  <p>
+                    <span className="font-semibold">Heads up:</span> with Dr. Park
+                    enabled, the team anchors harder on common diagnoses. This
+                    can <span className="font-semibold">reduce sensitivity for
+                    rare conditions</span> — Hauser&rsquo;s zebra-hunting voice gets
+                    actively pushed back on. Recommended only when the
+                    presentation looks clearly common.
+                  </p>
+                </div>
               )}
             </div>
 

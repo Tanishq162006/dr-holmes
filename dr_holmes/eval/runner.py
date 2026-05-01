@@ -38,6 +38,7 @@ class EvalRunConfig(BaseModel):
 
     # full_team specific
     full_team_mock_fixture: Optional[str] = None
+    full_team_include_park: bool = False
 
     # MI layer specific
     mi_max_tool_iters: int = 8
@@ -108,6 +109,7 @@ def _build_runner(
             cache, tracker,
             mock_fixture=config.full_team_mock_fixture,
             prompt_version=prompt_version,
+            include_park=config.full_team_include_park,
         )
     raise ValueError(f"Unknown condition: {condition}")
 

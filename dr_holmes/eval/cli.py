@@ -44,6 +44,10 @@ def main():
     p.add_argument("--run-id", default="")
     p.add_argument("--full-team-mock-fixture", default=None,
                    help="Path to a mock fixture (for full_team without LLM keys)")
+    p.add_argument("--with-park", action="store_true",
+                   help="Add Dr. Park (primary care, anti-zebra) to the team. "
+                        "Default: Park excluded — n=20 ablation showed baseline "
+                        "beats with-Park on Top-1 + ECE. See docs/EVAL_SUMMARY.md.")
     p.add_argument("--mi-max-iters", type=int, default=8)
 
     p.add_argument("--report", action="store_true",
@@ -104,6 +108,7 @@ def main():
         seed=args.seed,
         max_budget_usd=budget,
         full_team_mock_fixture=args.full_team_mock_fixture,
+        full_team_include_park=args.with_park,
         mi_max_tool_iters=args.mi_max_iters,
     )
 

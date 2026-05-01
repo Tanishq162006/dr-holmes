@@ -59,6 +59,15 @@ async def _run_mock_case(case_id: str, fixture_path: str, owner_id: str) -> None
     fixture = load_fixture(fixture_path)
     registry, caddick = build_mock_agents(fixture)
 
+    # Phase 6.8: per-case Park toggle. Default False — see docs/EVAL_SUMMARY.md.
+    # Drop Park from the registry unless the case row explicitly opts in.
+    sm = get_sessionmaker()
+    async with sm() as session:
+        case_row = (await session.execute(select(Case).where(Case.id == case_id))).scalar_one_or_none()
+    include_park = bool(getattr(case_row, "include_park", False)) if case_row else False
+    if not include_park:
+        registry.pop("Park", None)
+
     translator = EventTranslator(case_id)
 
     async def emit_dict(d: dict):
@@ -135,9 +144,11 @@ async def _run_mock_case(case_id: str, fixture_path: str, owner_id: str) -> None
     )
 
     # Initial case_started event
+    _agents_list = list(registry.keys()) + ["Caddick"]
     await emit_dict(translator._ev("case_started", {
         "patient_presentation": fixture.get("patient_presentation", {}),
-        "agents": ["Hauser", "Forman", "Carmen", "Chen", "Wills", "Caddick"],
+        "agents": _agents_list,
+        "include_park": include_park,
         "mock_mode": True,
         "fixture_path": fixture_path,
     }))
@@ -292,6 +303,7 @@ async def _run_live_case(case_id: str, owner_id: str) -> None:
     if not case_row:
         raise RuntimeError(f"Case {case_id} not in DB")
     patient = case_row.patient_presentation
+    include_park = bool(getattr(case_row, "include_park", False))
 
     translator = EventTranslator(case_id)
     loop = asyncio.get_event_loop()
@@ -353,17 +365,20 @@ async def _run_live_case(case_id: str, owner_id: str) -> None:
         on_final=on_final,
     )
 
+    # Build live agents — uses OPENAI_API_KEY and XAI_API_KEY from env
+    registry = build_live_specialists()
+    if not include_park:
+        registry.pop("Park", None)
+
     await emit_dict(translator._ev("case_started", {
         "patient_presentation": patient,
-        "agents": ["Hauser", "Forman", "Carmen", "Chen", "Wills", "Caddick"],
+        "agents": list(registry.keys()) + ["Caddick"],
+        "include_park": include_park,
         "mock_mode": False,
         "live_mode": True,
         "session_budget_usd": _budget.session_budget_usd(),
         "per_case_budget_usd": _budget.per_case_budget_usd(),
     }))
-
-    # Build live agents — uses OPENAI_API_KEY and XAI_API_KEY from env
-    registry = build_live_specialists()
     from openai import OpenAI as _OAI
     caddick_client = _OAI(api_key=os.getenv("OPENAI_API_KEY", ""))
     caddick = CaddickAgent(mode="live", llm_client=caddick_client, llm_model="gpt-4o")
@@ -607,6 +622,13 @@ async def _run_followup(
         registry = build_live_specialists()
         caddick_client = _OAI(api_key=os.getenv("OPENAI_API_KEY", ""))
         caddick = CaddickAgent(mode="live", llm_client=caddick_client, llm_model="gpt-4o")
+
+    # Phase 6.7: honor include_park on the original case row
+    sm_p = get_sessionmaker()
+    async with sm_p() as session:
+        cr = (await session.execute(select(Case).where(Case.id == case_id))).scalar_one_or_none()
+    if cr and not bool(getattr(cr, "include_park", False)):
+        registry.pop("Park", None)
 
     graph = build_phase3_graph(registry, caddick, hooks, enable_hitl=False)
 

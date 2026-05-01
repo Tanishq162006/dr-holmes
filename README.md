@@ -55,10 +55,43 @@ A House MD–style diagnostic team built as a multi-agent LLM system. Seven AI a
 | **6** | ✅ done | Human-in-the-loop interrupts: pause / resume / inject evidence / question / correct / conclude — all wired through LangGraph checkpointer + interrupt_after, with Redis intervention queue, evidence-conflict detection, and forced-conclusion dissent capture |
 | **6.5** | ✅ done | Strict live-mode budget guards: env-flag gate, session + per-case caps, max-tokens-per-call, pre-flight estimator, persistent SQLite cost log, X-DrHolmes-Live-Confirm header. Live agent classes (`LiveSpecialistAgent` + `live_call.py`) for OpenAI + xAI with strict structured outputs |
 | **6.6** | ✅ done | Concluded-as-reversible lifecycle: AI's natural stopping point is `concluded` (re-openable); doctor's explicit `finalize` button → terminal `finalized` state. Followup endpoint reopens with new findings → AI re-deliberates → updated report. Frontend `AddFindingsPanel` for doctor follow-up |
-| **6.7** | ✅ done | Dr. Park (7th agent, female): primary care attending with authority-on-confidence (×1.3 weight + double vote when she's confident on a common dx). Disease-name canonicalization (STEMI ↔ Acute MI etc.) so cross-specialist agreement isn't fragmented by naming variants |
+| **6.7** | ✅ done | Dr. Park (7th agent, female): primary care attending, anti-zebra ("common things are common"). Disease-name canonicalization (STEMI ↔ Acute MI etc.) so cross-specialist agreement isn't fragmented by naming variants |
+| **6.8** | ✅ done | Per-case Park toggle (frontend checkbox + backend `include_park` flag + eval CLI `--no-park`). Authority-on-confidence mechanism disabled after n=20 ablation showed it hurt Top-1 and ECE. See [docs/EVAL_SUMMARY.md](docs/EVAL_SUMMARY.md) |
 | 8 | future | Trace recording / demo export |
 
 **Test coverage:** `105 tests, all passing` (22 orchestration unit + 11 Phase 3 E2E + 14 Phase 4 API + 23 Phase 7 eval + 15 Phase 6 HITL + 12 Phase 6.5 budget + 8 Phase 5 frontend).
+
+---
+
+## Eval results: does Dr. Park help?
+
+Park (7th agent, primary care, anti-zebra) is **opt-in** per case (default off). She's preserved as a toggle rather than deleted because the n=20 evidence is directional, not statistically conclusive — but the directional read is "baseline wins":
+
+| Metric | Pre-Park (6 agents) | With Park (7 agents, no authority) |
+|---|---|---|
+| Top-1 accuracy | **35.0%** | 30.0% |
+| Top-3 accuracy | 35.0% | 35.0% |
+| Top-5 accuracy | **50.0%** | 45.0% |
+| MRR | **0.383** | 0.348 |
+| ECE (calibration) | **0.170** | 0.264 |
+| Brier | **0.234** | 0.238 |
+| Cost / case | **$0.032** | $0.040 (+25%) |
+| Premature convergence | 0% | 5% |
+
+**Read:** at n=20, baseline beats Park on every accuracy metric, but **the 95% CIs overlap [10–55%] on Top-1 — none of these differences are statistically significant.** Park stays in the lineup as a per-case toggle so a future n=200 run can either commit to her or remove her with real evidence.
+
+What was tried and rolled back:
+- **Park's authority-on-confidence (×1.3 prob weight + 2 votes when confident)** — initial design intent. Two tuning passes (0.70/1.30, then 0.85/1.15) both made ECE worse. Disabled in code (`PARK_AUTHORITY_THRESHOLD = 1.01`).
+- **Park on gpt-4o-mini** — 15% strict-json-schema failures dropped 3/20 cases. Moved to gpt-4o (the +$0.005/case is worth schema reliability).
+
+Full per-run breakdown + per-disease accuracy in [`docs/EVAL_SUMMARY.md`](docs/EVAL_SUMMARY.md). Reproduce either arm with:
+
+```bash
+python3 -m dr_holmes.eval.cli --tier smoke --conditions full_team --n 20 --seed 42 \
+    --run-id baseline_n20                     # 6-agent team (default)
+python3 -m dr_holmes.eval.cli --tier smoke --conditions full_team --n 20 --seed 42 \
+    --run-id with_park_n20 --with-park        # 7-agent team
+```
 
 ---
 

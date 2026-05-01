@@ -9,6 +9,14 @@ class CaseCreateRequest(BaseModel):
     mock_mode: bool = False
     fixture_path: str | None = None
     max_rounds: int = 6
+    # Per-case toggle for Dr. Park (primary care, anti-zebra). Default False
+    # because the n=20 ablation showed baseline beats with-Park on Top-1
+    # (35% vs 30%) and ECE (0.17 vs 0.26). Park anchors on common dx and
+    # actively pushes back on Hauser's zebra-hunting, which can reduce
+    # rare-disease sensitivity. Opt in per case when you want the
+    # primary-care anchor (e.g. clearly common presentations).
+    # See docs/EVAL_SUMMARY.md.
+    include_park: bool = False
 
 
 class CaseSummary(BaseModel):
@@ -16,6 +24,7 @@ class CaseSummary(BaseModel):
     owner_id: str
     status: str
     mock_mode: bool
+    include_park: bool = False
     rounds_taken: int
     convergence_reason: str | None = None
     followup_count: int = 0
