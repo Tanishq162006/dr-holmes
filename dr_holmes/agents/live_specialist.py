@@ -157,11 +157,13 @@ DEFAULT_CONFIGS: dict[str, LiveAgentConfig] = {
         system_prompt=_WILLS, base_url="https://api.x.ai/v1",
     ),
     # Park — primary care / common-case anchor (female).
-    # OpenAI gpt-4o-mini for strict json_schema reliability + intra-team
-    # provider diversity (3 OpenAI / 4 xAI specialists).
+    # gpt-4o (not -mini): the n=20 eval showed -mini hit 15% schema failures
+    # under strict json_schema, and Park's wrong-when-confident answers blew
+    # up team ECE (0.17 → 0.37). Reliable structured output matters more for
+    # an authority voice than cost savings.
     "Park": LiveAgentConfig(
         name="Park", specialty="Primary care · Outpatient", bias="common",
-        provider="openai", model="gpt-4o-mini",
+        provider="openai", model="gpt-4o",
         system_prompt=_PARK,
     ),
 }

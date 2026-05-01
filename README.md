@@ -2,7 +2,7 @@
 
 > ⚠️ **NOT FOR CLINICAL USE.** Portfolio / learning project. All diagnoses are AI simulation. No real patient data.
 
-A House MD–style diagnostic team built as a multi-agent LLM system. Six AI agents with distinct personalities, specialties, and model providers deliberate over patient cases in real time. A moderator (Dr. Caddick) routes the conversation deterministically. The system grounds reasoning in a real medical knowledge graph, a Bayesian engine over DDXPlus, and vector-retrieved case literature.
+A House MD–style diagnostic team built as a multi-agent LLM system. Seven AI agents with distinct personalities, specialties, and model providers deliberate over patient cases in real time. A moderator (Dr. Caddick) routes the conversation deterministically. The system grounds reasoning in a real medical knowledge graph, a Bayesian engine over DDXPlus, and vector-retrieved case literature.
 
 ```
                    ┌────────────────┐

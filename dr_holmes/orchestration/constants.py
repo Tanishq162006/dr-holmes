@@ -11,8 +11,13 @@ STABILITY_DELTA  = 0.05   # last-round top-dx probability movement < this
 # cross-specialist agreement check AND her probability gets a multiplier
 # in noisy-OR aggregation. Anchors the team toward common diagnoses when
 # she's confident, while preserving Hauser's right to dissent.
-PARK_AUTHORITY_THRESHOLD = 0.70
-PARK_AUTHORITY_WEIGHT    = 1.30   # multiplier on her prob in noisy-OR
+# Tightened after n=20 eval: 0.70 + 1.30× drove ECE from 0.17 → 0.37 because
+# Park's wrong-but-confident answers got amplified. Raise the bar (only fires
+# when she's clearly anchored) and lower the multiplier (still meaningful, no
+# longer dominant). Vote-doubling in convergence kept but gated by same higher
+# threshold.
+PARK_AUTHORITY_THRESHOLD = 0.85
+PARK_AUTHORITY_WEIGHT    = 1.15   # multiplier on her prob in noisy-OR
 PARK_LOW_THRESHOLD_BUMP  = 0.10   # when Park is very confident, lower
                                     # CONVERGENCE_PROB by this for HER dx only
 

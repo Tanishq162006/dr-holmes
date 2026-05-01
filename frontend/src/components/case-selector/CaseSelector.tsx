@@ -56,7 +56,7 @@ export function CaseSelector() {
       {/* Hero */}
       <section className="text-center pt-4 pb-2">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-          Six minds, one diagnosis.
+          Seven minds, one diagnosis.
         </h1>
         <p className="mt-3 text-sm sm:text-base text-[hsl(var(--muted-foreground))] max-w-xl mx-auto">
           A multi-agent LLM diagnostic deliberation system. Watch the team
