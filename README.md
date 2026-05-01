@@ -41,9 +41,12 @@ A House MD–style diagnostic team built as a multi-agent LLM system. Six AI age
 | **7** | ✅ done | Eval harness: 5-condition baselines, DDXPlus stratified sampling, calibration analysis (ECE, Brier, reliability bins), bootstrap CIs, deterministic LLM cache, hard budget cap, markdown reports + matplotlib charts |
 | **5** | ✅ done | Next.js 16 frontend: 3-pane case view, animated probability bars, eval browser with zero-cost case replay, dark mode, keyboard shortcuts |
 | **6** | ✅ done | Human-in-the-loop interrupts: pause / resume / inject evidence / question / correct / conclude — all wired through LangGraph checkpointer + interrupt_after, with Redis intervention queue, evidence-conflict detection, and forced-conclusion dissent capture |
+| **6.5** | ✅ done | Strict live-mode budget guards: env-flag gate, session + per-case caps, max-tokens-per-call, pre-flight estimator, persistent SQLite cost log, X-DrHolmes-Live-Confirm header. Live agent classes (`LiveSpecialistAgent` + `live_call.py`) for OpenAI + xAI with strict structured outputs |
+| **6.6** | ✅ done | Concluded-as-reversible lifecycle: AI's natural stopping point is `concluded` (re-openable); doctor's explicit `finalize` button → terminal `finalized` state. Followup endpoint reopens with new findings → AI re-deliberates → updated report. Frontend `AddFindingsPanel` for doctor follow-up |
+| **6.7** | ✅ done | Dr. Park (7th agent, female): primary care attending with authority-on-confidence (×1.3 weight + double vote when she's confident on a common dx). Disease-name canonicalization (STEMI ↔ Acute MI etc.) so cross-specialist agreement isn't fragmented by naming variants |
 | 8 | future | Trace recording / demo export |
 
-**Test coverage:** `93 tests, all passing` (22 orchestration unit + 11 Phase 3 E2E + 14 Phase 4 API + 23 Phase 7 eval + 15 Phase 6 HITL + 8 Phase 5 frontend).
+**Test coverage:** `105 tests, all passing` (22 orchestration unit + 11 Phase 3 E2E + 14 Phase 4 API + 23 Phase 7 eval + 15 Phase 6 HITL + 12 Phase 6.5 budget + 8 Phase 5 frontend).
 
 ---
 
@@ -149,14 +152,17 @@ websocat 'ws://localhost:8000/ws/cases/{case_id}?replay=true'
 
 | Agent | Provider | Model | Specialty | Bias | Personality |
 |---|---|---|---|---|---|
-| **Hauser** | xAI | `grok-2-1212` | Lead diagnostician | rare | Contrarian, hunts zebras, blunt |
-| **Forman** | OpenAI | `gpt-4o` | Internal med / Neuro | common | Evidence-based, methodical |
-| **Carmen** | OpenAI | `gpt-4o-mini` | Immunology | autoimmune | Empathetic, rigorous on serology |
-| **Chen** | OpenAI | `gpt-4o-mini` | Surgical / ICU | procedural | Action-oriented, time-critical |
-| **Wills** | OpenAI | `gpt-4o-mini` | Oncology | malignancy | Measured, rules malignancy in/out |
-| **Caddick** | OpenAI | `gpt-4o` | Moderator | n/a | Deterministic routing + synthesis |
+| **Hauser** | xAI | `grok-4-fast-non-reasoning` | Lead diagnostician | rare | Contrarian, hunts zebras, blunt (he/him) |
+| **Forman** | OpenAI | `gpt-4o` | Internal med · Neuro | common | Evidence-based, methodical (he/him) |
+| **Carmen** | xAI | `grok-4-fast-non-reasoning` | Immunology | autoimmune | Empathetic, rigorous on serology (she/her) |
+| **Chen** | xAI | `grok-4-fast-non-reasoning` | Surgical · ICU | procedural | Action-oriented, time-critical (he/him) |
+| **Wills** | xAI | `grok-4-fast-non-reasoning` | Oncology | malignancy | Measured, rules malignancy in/out (he/him) |
+| **Park** | OpenAI | `gpt-4o-mini` | Primary care · Outpatient | common | "Common things are common." Anti-zebra. Higher authority when confident (she/her) |
+| **Caddick** | OpenAI | `gpt-4o` | Moderator | n/a | Deterministic routing + synthesis (she/her) |
 
-**Two providers required: OpenAI + xAI** (Grok). Cross-provider diversity comes from `Hauser` running on Grok against the OpenAI-family majority — different training distribution, different failure modes. The remaining differentiation comes from system prompts + specialty-biased tool calls, not model choice.
+**Two providers required: OpenAI + xAI** (Grok). Cross-provider diversity is real — 4 specialists run on Grok (different training distribution, different failure modes) and 3 agents run on OpenAI. Differentiation also comes from system prompts + specialty-biased tool calls.
+
+**Park's authority-on-confidence:** When Park's top-dx confidence is ≥ 0.70, her vote counts as 2 specialists in the cross-agreement check, AND her probability gets a 1.3× weight in the noisy-OR aggregation. This anchors the team toward common diagnoses when she's loud — without making her a dictator (Hauser can still dissent).
 
 ---
 

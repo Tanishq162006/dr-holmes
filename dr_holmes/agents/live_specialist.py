@@ -81,6 +81,35 @@ SPECIALTY BIAS: procedural / surgical / ICU.
 OUTPUT: Same AgentResponse JSON schema. Brief reasoning. defers_to_team is
 fine when no procedural angle exists."""
 
+_PARK = """You are Dr. Chi Park, a primary care attending. (She/her.)
+
+PERSONALITY: Calm, decisive, allergic to unnecessary tests. You have seen
+ten thousand viral URIs and you know what one looks like. Your favorite
+phrase is "common things are common." You don't get rattled by Hauser's
+zebra theatrics — you've heard them before, and they're usually wrong.
+
+SPECIALTY BIAS: common / outpatient / Occam's razor.
+
+WHEN YOU'RE CONFIDENT: state your top dx with high probability (≥0.7) and
+brief evidence. The team weights you heavier when you're confident — use
+that authority responsibly. Only push hard when the case clearly fits a
+common pattern.
+
+WHEN YOU'RE NOT SURE: defer with low confidence. Don't fake authority.
+The team relies on you being right when you're loud.
+
+KEY DECISION MOVES:
+- Cough + fever + clear chest exam → Bronchitis or URI before pneumonia
+- Sore throat + viral prodrome → Viral pharyngitis before strep / mono / COVID
+- Dizziness + dry mucous membranes → Dehydration before exotic causes
+- Ear pain + fever + child → Acute otitis media, treat empirically
+- "Atypical chest pain" + GI sx → GERD / costochondritis before cardiac
+
+OUTPUT: Same AgentResponse JSON schema. Be brief. Push back on Hauser
+when he's overshooting on a common case ("Hauser, this isn't a zebra,
+it's a horse"). Empty challenges list is fine when you agree with the team."""
+
+
 _WILLS = """You are Dr. James Wills, an oncology consultant.
 
 PERSONALITY: Measured, careful, rules malignancy in/out methodically. You
@@ -96,30 +125,44 @@ add this round, set defers_to_team=true and confidence=0."""
 # ── Default config registry ────────────────────────────────────────────────
 
 DEFAULT_CONFIGS: dict[str, LiveAgentConfig] = {
+    # Hauser on grok-4-fast-non-reasoning — fast + cheap (validated in Test 2).
+    # We tried grok-4.3 (flagship) but it was 10× slower → poor eval throughput.
     "Hauser": LiveAgentConfig(
         name="Hauser", specialty="Lead diagnostician", bias="rare",
         provider="xai", model="grok-4-fast-non-reasoning",
         system_prompt=_HAUSER, base_url="https://api.x.ai/v1",
     ),
+    # Forman stays on gpt-4o — primary OpenAI anchor
     "Forman": LiveAgentConfig(
         name="Forman", specialty="Internal med · Neuro", bias="common",
         provider="openai", model="gpt-4o",
         system_prompt=_FORMAN,
     ),
+    # Trio moves to Grok for cost + cross-provider diversity.
+    # Note: Grok doesn't support OpenAI strict json_schema — relies on
+    # prompt-based JSON enforcement (CONCISE addendum + max_tokens=800).
     "Carmen": LiveAgentConfig(
         name="Carmen", specialty="Immunology", bias="autoimmune",
-        provider="openai", model="gpt-4o-mini",
-        system_prompt=_CARMEN,
+        provider="xai", model="grok-4-fast-non-reasoning",
+        system_prompt=_CARMEN, base_url="https://api.x.ai/v1",
     ),
     "Chen": LiveAgentConfig(
         name="Chen", specialty="Surgical · ICU", bias="procedural",
-        provider="openai", model="gpt-4o-mini",
-        system_prompt=_CHEN,
+        provider="xai", model="grok-4-fast-non-reasoning",
+        system_prompt=_CHEN, base_url="https://api.x.ai/v1",
     ),
     "Wills": LiveAgentConfig(
         name="Wills", specialty="Oncology", bias="malignancy",
+        provider="xai", model="grok-4-fast-non-reasoning",
+        system_prompt=_WILLS, base_url="https://api.x.ai/v1",
+    ),
+    # Park — primary care / common-case anchor (female).
+    # OpenAI gpt-4o-mini for strict json_schema reliability + intra-team
+    # provider diversity (3 OpenAI / 4 xAI specialists).
+    "Park": LiveAgentConfig(
+        name="Park", specialty="Primary care · Outpatient", bias="common",
         provider="openai", model="gpt-4o-mini",
-        system_prompt=_WILLS,
+        system_prompt=_PARK,
     ),
 }
 

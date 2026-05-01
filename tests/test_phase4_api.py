@@ -101,7 +101,7 @@ def test_list_agents(server):
     r = httpx.get(f"{base_url}/api/agents")
     assert r.status_code == 200
     names = {a["name"] for a in r.json()}
-    assert names == {"Hauser", "Forman", "Carmen", "Chen", "Wills", "Caddick"}
+    assert names == {"Hauser", "Forman", "Carmen", "Chen", "Wills", "Park", "Caddick"}
 
 
 def test_agent_profile(server):

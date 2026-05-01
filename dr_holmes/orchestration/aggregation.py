@@ -177,6 +177,14 @@ def aggregate_team_differential(
         else:
             agent_conf = float(getattr(last, "confidence", 0.5))
 
+        # Phase 6.7: Park's authority — confident Park gets weight multiplier
+        from dr_holmes.orchestration.constants import (
+            PARK_AUTHORITY_THRESHOLD, PARK_AUTHORITY_WEIGHT,
+        )
+        weight_mult = 1.0
+        if agent == "Park" and agent_conf >= PARK_AUTHORITY_THRESHOLD:
+            weight_mult = PARK_AUTHORITY_WEIGHT
+
         for d in diffs[:3]:
             name = (d.diagnosis if hasattr(d, "diagnosis") else d.get("diagnosis", "")) or ""
             if not name:
@@ -186,8 +194,8 @@ def aggregate_team_differential(
             if not b["name"]:
                 b["name"] = name
             prob = float(d.probability if hasattr(d, "probability") else d.get("probability", 0.0))
-            b["probs"].append(prob)
-            b["weights"].append(max(agent_conf, 0.1))
+            b["probs"].append(prob * weight_mult)  # Park-authority probability boost
+            b["weights"].append(max(agent_conf, 0.1) * weight_mult)
             b["proposers"].add(agent)
             sup = (d.supporting_evidence if hasattr(d, "supporting_evidence")
                    else d.get("supporting_evidence", [])) or []

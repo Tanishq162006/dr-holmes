@@ -70,7 +70,9 @@ def has_converged(state: dict) -> tuple[bool, str]:
 
     top_name_raw = _dx_name(top)
 
-    # Cross-specialist agreement check
+    # Cross-specialist agreement check.
+    # Phase 6.7: Park's vote counts as 2 when her confidence ≥ threshold.
+    from dr_holmes.orchestration.constants import PARK_AUTHORITY_THRESHOLD
     responses = state.get("agent_responses", {}) or {}
     agree = 0
     for sp in SPECIALISTS:
@@ -79,11 +81,16 @@ def has_converged(state: dict) -> tuple[bool, str]:
             continue
         last = hist[-1]
         diffs = _get(last, "differentials", []) or []
+        agent_conf = float(_get(last, "confidence", 0.0))
         for d in diffs[:3]:
             d_name_raw = _dx_name(d)
             d_prob = float(_get(d, "probability", 0.0))
             if _dx_tokens_match(top_name_raw, d_name_raw) and d_prob > AGREEMENT_PROB:
-                agree += 1
+                # Park's authority: high-confidence Park counts as 2 votes
+                if sp == "Park" and agent_conf >= PARK_AUTHORITY_THRESHOLD:
+                    agree += 2
+                else:
+                    agree += 1
                 break
     if agree < AGREEMENT_COUNT:
         return False, ""

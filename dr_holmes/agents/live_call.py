@@ -209,39 +209,78 @@ def _safe_parse_response(raw_text: str, agent_name: str, turn_number: int,
             turn_type=turn_type, responding_to=intervention_id,
         )
 
+    # Defensive parsing — Grok models without strict schema sometimes emit
+    # nested fields as strings instead of objects. Guard every access.
+    def _as_dict(x):
+        return x if isinstance(x, dict) else {}
+    def _as_list(x):
+        return x if isinstance(x, list) else []
+
+    diffs_raw = _as_list(obj.get("differentials"))
+    diffs: list[Differential] = []
+    for d in diffs_raw[:5]:
+        d = _as_dict(d)
+        if not d.get("diagnosis"):
+            continue
+        try:
+            prob = float(d.get("probability", 0.0))
+        except (TypeError, ValueError):
+            prob = 0.0
+        # Clamp to [0, 1] in case model emits 50.0 etc.
+        prob = max(0.0, min(1.0, prob))
+        diffs.append(Differential(
+            diagnosis=str(d.get("diagnosis", "?")),
+            probability=prob,
+            rationale=str(d.get("rationale", ""))[:300],
+            supporting_evidence=[str(s) for s in _as_list(d.get("supporting_evidence"))],
+            contradicting_evidence=[str(s) for s in _as_list(d.get("contradicting_evidence"))],
+        ))
+
+    tests_raw = _as_list(obj.get("proposed_tests"))
+    tests: list[TestProposal] = []
+    for t in tests_raw[:5]:
+        t = _as_dict(t)
+        if not t.get("test_name"):
+            continue
+        tests.append(TestProposal(
+            test_name=str(t.get("test_name", "")),
+            rationale=str(t.get("rationale", ""))[:200],
+            rules_in=[str(s) for s in _as_list(t.get("rules_in"))],
+            rules_out=[str(s) for s in _as_list(t.get("rules_out"))],
+        ))
+
+    chals_raw = _as_list(obj.get("challenges"))
+    chals: list[Challenge] = []
+    valid_types = {"disagree_dx", "disagree_test", "missing_consideration",
+                   "evidence_mismatch", "personality_call"}
+    for c in chals_raw[:3]:
+        c = _as_dict(c)
+        target = c.get("target_agent")
+        if not target:
+            continue
+        ctype = c.get("challenge_type", "missing_consideration")
+        if ctype not in valid_types:
+            ctype = "missing_consideration"
+        chals.append(Challenge(
+            target_agent=str(target),
+            challenge_type=ctype,
+            content=str(c.get("content", ""))[:500],
+        ))
+
+    try:
+        conf = float(obj.get("confidence", 0.5))
+    except (TypeError, ValueError):
+        conf = 0.5
+    conf = max(0.0, min(1.0, conf))
+
     return AgentResponse(
         agent_name=agent_name,
         turn_number=turn_number,
         reasoning=str(obj.get("reasoning", ""))[:1500],
-        differentials=[
-            Differential(
-                diagnosis=str(d.get("diagnosis", "?")),
-                probability=float(d.get("probability", 0.0)),
-                rationale=str(d.get("rationale", ""))[:300],
-                supporting_evidence=list(d.get("supporting_evidence", []) or []),
-                contradicting_evidence=list(d.get("contradicting_evidence", []) or []),
-            )
-            for d in (obj.get("differentials") or [])[:5]
-        ],
-        proposed_tests=[
-            TestProposal(
-                test_name=str(t.get("test_name", "")),
-                rationale=str(t.get("rationale", "")),
-                rules_in=list(t.get("rules_in", []) or []),
-                rules_out=list(t.get("rules_out", []) or []),
-            )
-            for t in (obj.get("proposed_tests") or [])[:5]
-        ],
-        challenges=[
-            Challenge(
-                target_agent=str(c.get("target_agent", "")),
-                challenge_type=c.get("challenge_type", "missing_consideration"),
-                content=str(c.get("content", ""))[:500],
-            )
-            for c in (obj.get("challenges") or [])[:3]
-            if c.get("target_agent")
-        ],
-        confidence=float(obj.get("confidence", 0.5)),
+        differentials=diffs,
+        proposed_tests=tests,
+        challenges=chals,
+        confidence=conf,
         defers_to_team=bool(obj.get("defers_to_team", False)),
         request_floor=bool(obj.get("request_floor", False)),
         force_speak=bool(obj.get("force_speak", False)),

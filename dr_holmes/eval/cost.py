@@ -13,9 +13,13 @@ from pydantic import BaseModel
 PRICES: dict[tuple[str, str], tuple[float, float]] = {
     ("openai", "gpt-4o"):                       (2.50, 10.00),
     ("openai", "gpt-4o-mini"):                  (0.15,  0.60),
-    # xAI current models (as of 2026 — verify against xAI dashboard)
+    # xAI current models (verified against xAI dashboard)
+    ("xai",    "grok-4.3"):                     (1.25,  2.50),  # confirmed 1M ctx, $1.25/$2.50
+    ("xai",    "grok-4-0709"):                  (3.00, 15.00),
     ("xai",    "grok-4-fast-non-reasoning"):    (0.20,  0.50),
     ("xai",    "grok-4-fast-reasoning"):        (0.20,  0.50),
+    ("xai",    "grok-4-1-fast-non-reasoning"):  (0.20,  0.50),
+    ("xai",    "grok-4-1-fast-reasoning"):      (0.20,  0.50),
     ("xai",    "grok-3"):                       (3.00, 15.00),
     ("xai",    "grok-3-mini"):                  (0.30,  0.50),
     # legacy (eval cache compatibility)

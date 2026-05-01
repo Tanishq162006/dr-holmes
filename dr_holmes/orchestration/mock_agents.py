@@ -18,6 +18,7 @@ _SPEC_TO_BIAS = {
     "Carmen": "autoimmune",
     "Chen":   "procedural",
     "Wills":  "malignancy",
+    "Park":   "common",
 }
 _SPEC_TO_SPECIALTY = {
     "Hauser": "Lead diagnostician",
@@ -25,6 +26,7 @@ _SPEC_TO_SPECIALTY = {
     "Carmen": "Immunology",
     "Chen":   "Surgical / ICU",
     "Wills":  "Oncology",
+    "Park":   "Primary care / Outpatient",
 }
 
 

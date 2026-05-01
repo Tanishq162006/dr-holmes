@@ -63,6 +63,15 @@ export const AGENT_META: Record<AgentName, AgentMeta> = {
     specialty: "Oncology",
     pictogram: "🧫",
   },
+  Park: {
+    name: "Park", initial: "P", hue: "--agent-park",
+    bgClass: "bg-pink-600 dark:bg-pink-500",
+    textClass: "text-pink-600 dark:text-pink-400",
+    borderClass: "border-pink-600 dark:border-pink-500",
+    ringClass: "ring-pink-500/30",
+    specialty: "Primary care",
+    pictogram: "🩺",
+  },
   Caddick: {
     name: "Caddick", initial: "Ca", hue: "--agent-caddick",
     bgClass: "bg-violet-600 dark:bg-violet-500",

@@ -6,7 +6,7 @@
 import { z } from "zod";
 
 // ── Agents ────────────────────────────────────────────────────────────────
-export const AGENT_NAMES = ["Hauser", "Forman", "Carmen", "Chen", "Wills", "Caddick"] as const;
+export const AGENT_NAMES = ["Hauser", "Forman", "Carmen", "Chen", "Wills", "Park", "Caddick"] as const;
 export type AgentName = (typeof AGENT_NAMES)[number];
 export const AgentNameSchema = z.enum(AGENT_NAMES);
 

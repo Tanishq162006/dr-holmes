@@ -326,3 +326,94 @@ When `conclude_now` fires, the dedicated `build_forced_conclusion_report()` capt
 ### What's NOT in Phase 6
 - Live LLM agents acting on `turn_type` (the prompt addendum is documented but live agents are still scaffolded for Phase 4.5)
 - Multi-worker `RedisSaver` checkpointer (deferred — `MemorySaver` is fine for single-worker)
+
+---
+
+## Phase 6.5 — Live LLM execution + budget guards ✅
+
+**Goal:** Run the team against real LLMs (OpenAI + xAI) without burning a hole in the wallet. Mock mode stays the default; live mode is opt-in, gated, and capped.
+
+### Components
+- `dr_holmes/safety/budget.py` — process-global budget tracker. `llm_call_guard()` context manager wraps every live LLM call. Persists to `data/llm_calls.db`. Functions: `live_mode_enabled()`, `assert_live_allowed()`, `assert_within_budget()`, `record_call()`, `snapshot()`.
+- `dr_holmes/agents/live_call.py` — shared `call_live_specialist()` helper. Strict JSON schema for OpenAI (`response_format={"type": "json_schema", "strict": True}` with bounded `probability`/`confidence` ∈ [0,1]). Prompt-based JSON for xAI. Defensive parsing (`_as_dict`, `_as_list`) handles Grok's occasional malformed nesting.
+- `dr_holmes/agents/live_specialist.py` — `LiveAgentConfig` per agent + `DEFAULT_CONFIGS` mapping each specialist to provider/model/system-prompt.
+
+### Eight budget guards
+1. `DR_HOLMES_ALLOW_LIVE=true` env flag (default off — mock mode wins by default)
+2. `DR_HOLMES_MAX_BUDGET_USD` — hard session cap, raises `BudgetExceeded` before the API call
+3. `DR_HOLMES_MAX_COST_PER_CASE_USD` — per-case cap
+4. `DR_HOLMES_MAX_TOKENS_PER_CALL` — per-call token cap (default 800)
+5. Pre-flight estimate gate on `POST /api/cases` (live, non-mock) — refuses 402 if `rough_estimate > remaining_budget`
+6. `X-DrHolmes-Live-Confirm: true` header required for non-mock case creation (frontend sets it; manual API users opt-in explicitly)
+7. Persistent SQLite cost log → restart-safe budget tracking
+8. Catch-all exception handler in `_run_live_case` so any uncaught LLM error marks the case `errored` cleanly (no zombie running cases)
+
+### REST contract
+- `POST /api/cases` returns 403 if live disabled, 400 if confirm header missing, 402 if estimate exceeds remaining budget.
+- Pre-flight: `rough_estimate = max(0.30, per_case_budget_usd() * 0.6)`.
+
+### Tests
+`tests/test_phase65_budget.py` — 12 tests covering env-flag gating, session/per-case caps, persistence across resets, idempotent recording.
+
+---
+
+## Phase 6.6 — Reversible "concluded" state + followup loop ✅
+
+**Goal:** The AI's "concluded" output is a hypothesis, not a verdict. The doctor should be able to add new findings *after* deliberation ends and have the team re-deliberate. Only the doctor's explicit "Finalize" action makes a case terminal.
+
+### Lifecycle
+```
+running → concluded ⇄ running (followup) → … → finalized (terminal)
+```
+
+- `concluded` is reversible: any `POST /api/cases/{id}/followup` re-opens the case, appends new evidence, and runs another deliberation cycle.
+- `finalized` is terminal: `POST /api/cases/{id}/finalize` freezes the report. No further followups accepted.
+
+### Components
+- `dr_holmes/api/persistence.py` — Case model gains `assessment_history` (every concluded report), `finalized_report`, `evidence_log`, `followup_count`, `finalized_at`.
+- `dr_holmes/api/runner.py` — `_run_followup()` reconstructs graph state from DB, schedules a Caddick(`evidence_acknowledgment`) turn, runs another cycle.
+- `dr_holmes/api/routes/cases.py` — `POST /api/cases/{id}/followup` and `POST /api/cases/{id}/finalize`.
+- New WS event: `case_reopened`.
+- Frontend: `frontend/src/components/case-view/AddFindingsPanel.tsx` shows when `status === 'concluded'`. Multi-row form (type / name / value), optional question, "Submit & continue" + "Finalize case (lock)" buttons.
+
+### Why this matters
+A doctor running this on a real shift wants to test the AI iteratively as new labs come back. A locked-after-N-rounds system would force them to re-create the case from scratch every time. This change makes Dr. Holmes a session, not a one-shot.
+
+---
+
+## Phase 6.7 — Dr. Park: anti-zebra primary care voice ✅
+
+**Goal:** Hauser hunts zebras (rare diseases, high information value when right, but wrong on common cases). The team needed an opposing voice — a primary-care doctor who anchors on base rates and refuses to forget that common things are common.
+
+### Dr. Chi Park, MD (she/her)
+- **Specialty:** Primary care · Outpatient
+- **Bias:** common (anti-zebra)
+- **Provider/model:** OpenAI gpt-4o-mini (cost-efficient — Park talks every round)
+- **System prompt persona:** "Common things are common. Don't anchor on the rare disease unless the evidence demands it."
+
+### Authority-on-confidence mechanism
+Park's vote is rate-limited by her own certainty. When she's confident, she has more pull than the rest of the team:
+
+- **Threshold:** `PARK_AUTHORITY_THRESHOLD = 0.70`
+- **Probability weight:** `PARK_AUTHORITY_WEIGHT = 1.30` applied in noisy-OR aggregation when `Park.confidence ≥ 0.70`
+- **Convergence vote:** when Park is at high confidence, she counts as 2 votes in the cross-specialist agreement check (≥3 of N agree)
+- **Below threshold:** Park's vote is normal weight — uncertainty doesn't get amplified
+
+### Disease-name canonicalization
+Park's anti-zebra voice surfaced an existing bug: name-variant fragmentation (Hauser says "STEMI", Forman says "Acute MI", Wills says "AMI" — convergence check counts these as 3 different diagnoses). Added `_CANONICAL_MAP` in `dr_holmes/orchestration/aggregation.py` (~30 entries: STEMI ↔ Acute MI ↔ AMI, PE ↔ pulmonary embolism, SLE ↔ lupus, Whipple's, etc.) used in both noisy-OR aggregation and the convergence agreement check.
+
+### Lineup rebalance
+Cross-provider diversity: 4 Grok agents (Hauser, Carmen, Chen, Wills on `grok-4-fast-non-reasoning`) + 3 OpenAI agents (Forman, Caddick on `gpt-4o`, Park on `gpt-4o-mini`). Rebalance done because gpt-4o-mini was failing strict JSON schema on Wills/Carmen/Chen but Grok handles their specialties fine; Caddick stays on gpt-4o because reliable structured output matters most for the moderator.
+
+### Gender balance
+Carmen and Caddick were already female; Park added as female (Dr. Chi Park, she/her). Three women on the team, four men.
+
+### What's NOT in Phase 6.7
+- Mock fixtures don't include Park-specific responses yet — existing fixtures fall back to `defers_to_team` for Park via `MockSpecialistAgent` stub.
+- Per-agent ablation eval still pending (deferred to Phase 7.5).
+
+### Eval
+- `data/eval_runs/baseline_pre_park_n20/` — full team without Park (n=20, DDXPlus stratified)
+- `data/eval_runs/with_park_n20/` — full team with Park (n=20, same seed)
+
+Side-by-side comparison surfaces in `/eval/[runId]` on the website. Headline metrics: Top-1 accuracy, ECE (calibration), MRR, mean rounds-to-converge, cost-per-case.
