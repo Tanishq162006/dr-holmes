@@ -67,8 +67,8 @@ def render_disclaimer_banner(console: Console) -> None:
     body = Text()
     body.append("NOT FOR CLINICAL USE — AI simulation only\n", style="bold yellow")
     body.append("\n")
-    body.append("Dr. Holmes Phase 3 — six-agent diagnostic deliberation.\n", style="white")
-    body.append("Hauser • Forman • Carmen • Chen • Wills • Caddick (moderator)\n", style="dim")
+    body.append("Dr. Holmes — seven-agent diagnostic deliberation.\n", style="white")
+    body.append("Hauser • Forman • Carmen • Chen • Wills • Park • Caddick (moderator)\n", style="dim")
     body.append("No real patient data. No clinical decisions. Educational only.", style="dim italic")
     console.print(Panel(
         Align.center(body),

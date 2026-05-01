@@ -11,15 +11,16 @@ STABILITY_DELTA  = 0.05   # last-round top-dx probability movement < this
 # cross-specialist agreement check AND her probability gets a multiplier
 # in noisy-OR aggregation. Anchors the team toward common diagnoses when
 # she's confident, while preserving Hauser's right to dissent.
-# Tightened after n=20 eval: 0.70 + 1.30× drove ECE from 0.17 → 0.37 because
-# Park's wrong-but-confident answers got amplified. Raise the bar (only fires
-# when she's clearly anchored) and lower the multiplier (still meaningful, no
-# longer dominant). Vote-doubling in convergence kept but gated by same higher
-# threshold.
-PARK_AUTHORITY_THRESHOLD = 0.85
-PARK_AUTHORITY_WEIGHT    = 1.15   # multiplier on her prob in noisy-OR
-PARK_LOW_THRESHOLD_BUMP  = 0.10   # when Park is very confident, lower
-                                    # CONVERGENCE_PROB by this for HER dx only
+# DISABLED after two n=20 evals (0.70/1.30 then 0.85/1.15) both hurt headline
+# accuracy and ECE relative to pre-Park baseline. Park's confident anchor on
+# common dx pulled #1 toward her pick even when wrong, and the team
+# prematurely converged on it (+15pp new failure mode). Park stays as a
+# normal-weighted voice; her prompt persona still pushes back on Hauser's
+# zebras, but no aggregation/convergence multiplier. To re-enable, raise
+# PARK_AUTHORITY_WEIGHT > 1.0 and lower PARK_AUTHORITY_THRESHOLD < 1.01.
+PARK_AUTHORITY_THRESHOLD = 1.01   # > 1.0 means never fires
+PARK_AUTHORITY_WEIGHT    = 1.00   # no multiplier
+PARK_LOW_THRESHOLD_BUMP  = 0.00   # no convergence threshold bump
 
 # ── Round limits ───────────────────────────────────────────────────────────
 MAX_ROUNDS = 6

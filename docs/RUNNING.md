@@ -76,7 +76,7 @@ Three pre-built cases:
 
 ```bash
 python3 -m dr_holmes.cli            # 2-agent (Phase 1/2) live with Hauser + Forman
-python3 -m dr_holmes.cli_phase3     # 6-agent live (pending Anthropic SDK wiring)
+python3 -m dr_holmes.cli_phase3     # 7-agent live (OpenAI + xAI; gated by DR_HOLMES_ALLOW_LIVE)
 ```
 
 ### API server

@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "Dr. Holmes — multi-agent diagnostic deliberation",
   description:
-    "Educational research project. Six AI agents deliberate on patient cases. NOT FOR CLINICAL USE.",
+    "Educational research project. Seven AI agents deliberate on patient cases. NOT FOR CLINICAL USE.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

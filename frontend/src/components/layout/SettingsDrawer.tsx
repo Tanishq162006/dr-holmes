@@ -40,7 +40,7 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
               </div>
             </Row>
 
-            <Row label="Show agent thinking tokens" hint="Stream tokens as they arrive. Noisy with 6 agents.">
+            <Row label="Show agent thinking tokens" hint="Stream tokens as they arrive. Noisy with 7 agents.">
               <Switch.Root
                 checked={s.showAgentThinking}
                 onCheckedChange={s.setShowAgentThinking}
