@@ -366,3 +366,7 @@ python3 -m pytest tests/ -v
 ## License + disclaimer
 
 This is a personal portfolio project for learning multi-agent LLM systems and medical-domain knowledge engineering. Not affiliated with House M.D., Universal, or any medical institution. Strong AI disclaimer: the simulated diagnoses produced by this system are **fictional output** and must never be used to inform real medical decisions.
+
+---
+
+> **AI-assist disclosure:** I used Anthropic's Claude (via Claude Code) as a collaborator to help me learn the tech stack (LangGraph, Neo4j, FastAPI, Next.js, eval/calibration) and understand the code while building this project. — *Tanishq Jain*
